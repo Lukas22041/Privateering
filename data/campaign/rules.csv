@@ -1,0 +1,24 @@
+id,trigger,conditions,script,text,options,notes
+,,,,,,
+,,,,,,
+,,,,,,
+cmsn_doesNotMeetCriteria,DialogOptionSelected,"$option == cmsn_askCommission
+!Commission playerMeetsCriteria","SetEnabled cmsn_askCommission false
+FireBest CMSNTextUnsuited
+PrivateeringCommission printRequirements",,,
+cmsn_meetsCriteria2,DialogOptionSelected,$option == cmsn_continueMeetsReq,"PrivateeringCommission printInfo
+FireBest CMSNTextSuitedPart2",,"0:cmsn_accept:Accept $factionAOrAn $faction commission
+1:cmsn_cancel:""Perhaps I'm not quite ready for this.""",
+,,,,,,
+,,,,,,
+,,,,,,
+cmsn_accept_replace,DialogOptionSelected,$option == cmsn_accept score:10000000,"FireBest CMSNTextWelcomePart1
+PrivateeringCommission accept
+FireBest CMSNTextWelcomePart2
+FireAll PopulateOptions",,,
+rh_handleCommission_replace,DialogOptionSelected,"$option == rh_acceptMembership score:10000000
+!Commission hasFactionCommission
+!$didCommissionStep","PrivateeringCommission accept
+$didCommissionStep = true 0","Meanwhile, you skim and certify the executive summary of the Persean League commission credentials.",rh_acceptMembership:Continue,
+,,,,,,
+,,,,,,

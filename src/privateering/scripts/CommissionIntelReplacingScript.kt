@@ -20,26 +20,33 @@ class CommissionIntelReplacingScript : EveryFrameScript {
 
 
     override fun advance(amount: Float) {
-        var intel = Global.getSector().characterData.memoryWithoutUpdate.get(MemFlags.FCM_EVENT) as FactionCommissionIntel?
+        //replace()
+    }
 
-        //No Commission Active
-        if (intel == null) return
+    companion object {
+        fun replace() {
 
-        //Intel has already been replaced
-        if (intel is PrivateeringCommissionIntel) return
+            var intel = Global.getSector().characterData.memoryWithoutUpdate.get(MemFlags.FCM_EVENT) as FactionCommissionIntel?
 
-        var faction = intel.faction
-        var replacement = PrivateeringCommissionIntel(faction)
+            //No Commission Active
+            if (intel == null) return
 
-        //Remove original intel
-        Global.getSector().removeScript(intel)
-        Global.getSector().intelManager.removeIntel(intel)
-        Global.getSector().listenerManager.removeListener(intel)
+            //Intel has already been replaced
+            if (intel is PrivateeringCommissionIntel) return
 
-        //Make sure to set new intel as the comm intel, though this should be done by replacement.missionAccepted() anyways
-        Global.getSector().characterData.memoryWithoutUpdate.set(MemFlags.FCM_EVENT, replacement)
+            var faction = intel.faction
+            var replacement = PrivateeringCommissionIntel(faction)
 
-        replacement.missionAccepted()
+            //Remove original intel
+            Global.getSector().removeScript(intel)
+            Global.getSector().intelManager.removeIntel(intel)
+            Global.getSector().listenerManager.removeListener(intel)
+
+            //Make sure to set new intel as the comm intel, though this should be done by replacement.missionAccepted() anyways
+            Global.getSector().characterData.memoryWithoutUpdate.set(MemFlags.FCM_EVENT, replacement)
+
+            replacement.missionAccepted()
+        }
     }
 
 }

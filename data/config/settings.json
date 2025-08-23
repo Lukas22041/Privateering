@@ -1,6 +1,8 @@
  {
  	
-	
+	"ruleCommandPackages":[
+		"privateering.rules",
+	],
 	
 	
 	
