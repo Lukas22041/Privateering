@@ -16,6 +16,13 @@ cmsn_accept_replace,DialogOptionSelected,$option == cmsn_accept score:10000000,"
 PrivateeringCommission accept
 FireBest CMSNTextWelcomePart2
 FireAll PopulateOptions",,,
+cmsn_resignCommissionOpt_supervisor,PopulateOptions,"$isPerson
+$privateering_supervisor score:10000000
+PrivateeringCommission personCanGiveCommission
+Commission hasFactionCommission",,,"20:cmsn_resignCommission:""I'd like to resign my $faction commission""",
+cmsn_resignConfirm_replace,DialogOptionSelected,$option == cmsn_resignConfirm score:10000000,"FireBest CMSNResignConfirmed
+PrivateeringCommission resign
+FireAll PopulateOptions",,,
 rh_handleCommission_replace,DialogOptionSelected,"$option == rh_acceptMembership score:10000000
 !Commission hasFactionCommission
 !$didCommissionStep","PrivateeringCommission accept

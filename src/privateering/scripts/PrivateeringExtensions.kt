@@ -1,4 +1,4 @@
-package second_in_command.misc
+package privateering.scripts
 
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.SettingsAPI

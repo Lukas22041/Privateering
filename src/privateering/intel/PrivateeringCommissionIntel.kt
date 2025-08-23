@@ -9,17 +9,32 @@ import com.fs.starfarer.api.campaign.econ.MonthlyReport
 import com.fs.starfarer.api.campaign.econ.MonthlyReport.FDNode
 import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin
 import com.fs.starfarer.api.impl.campaign.ids.Commodities
+import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.intel.FactionCommissionIntel
 import com.fs.starfarer.api.impl.campaign.intel.PerseanLeagueMembership
-import privateering.rules.PrivateeringCommission
 import com.fs.starfarer.api.impl.campaign.shared.SharedData
+import com.fs.starfarer.api.ui.SectorMapAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.util.Misc
 import org.lazywizard.lazylib.MathUtils
+import privateering.intel.event.CommissionEventIntel
+import privateering.rules.PrivateeringCommission
 
 class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(faction) {
 
-    fun getMonthlyBaseIncome() = 15000f
+
+    fun updateBaseBounty() {
+        baseBounty = Global.getSettings().getFloat("factionCommissionBounty")
+        if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.WARFLEET) == true) baseBounty += 200;
+    }
+
+    override fun missionAccepted() {
+        super.missionAccepted()
+
+        if (CommissionEventIntel.get() == null || CommissionEventIntel.get()?.faction != Misc.getCommissionFaction()) {
+            CommissionEventIntel(faction)
+        }
+    }
 
     companion object {
 
@@ -35,7 +50,11 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         }
 
         @JvmStatic
-        var baseCommissionPay = 15000f
+        fun getMonthlyBaseIncome() : Float {
+            var base = 15000f
+            if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.PROMOTION) == true) base += 10000f
+            return base
+        }
 
         var maxSupplyCompensation = 20000f
         fun getSupplyCompensation(faction: FactionAPI) : Float {
@@ -84,7 +103,15 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         fun getTotalCompensation(faction: FactionAPI) = getSupplyCompensation(faction) + getCrewCompensation(faction) + getOfficerCompensation(faction)
     }
 
-
+    override fun getIntelTags(map: SectorMapAPI?): MutableSet<String> {
+        val tags = super.getIntelTags(map)
+        tags.remove(Tags.INTEL_ACCEPTED)
+        tags.remove(Tags.INTEL_MISSIONS)
+        tags.add(Tags.INTEL_AGREEMENTS)
+        tags.add(faction.id)
+        tags.add("Commission")
+        return tags
+    }
 
     override fun addBulletPoints(info: TooltipMakerAPI?, mode: IntelInfoPlugin.ListInfoMode?) {
 
@@ -134,6 +161,11 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             info.addPara("$relationMult%% fleet upkeep covered", 0f, tc, h, "$relationMult%")
         }
         unindent(info)
+    }
+
+
+    override fun advanceImpl(amount: Float) {
+        super.advanceImpl(amount)
     }
 
     override fun createSmallDescription(info: TooltipMakerAPI, width: Float, height: Float, forMarketConditionTooltip: Boolean) {
@@ -234,7 +266,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
     }
 
     fun addBaseNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
-        var basePay = baseCommissionPay
+        var basePay = getMonthlyBaseIncome()
         val basePayNode = report.getNode(commissionNode, "node_id_stipend_${faction.id}_base")
         basePayNode.income += basePay * mult
 

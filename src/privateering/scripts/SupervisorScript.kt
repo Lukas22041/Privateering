@@ -4,6 +4,7 @@ import com.fs.starfarer.api.EveryFrameScript
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.FactionAPI
 import com.fs.starfarer.api.campaign.PersonImportance
+import com.fs.starfarer.api.campaign.TextPanelAPI
 import com.fs.starfarer.api.campaign.econ.MarketAPI
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.impl.campaign.ids.Tags
@@ -81,7 +82,7 @@ class SupervisorScript : EveryFrameScript {
 
             var markets = Misc.getFactionMarkets(faction)
             markets = markets.filterNotNull()
-            markets = markets.sortedWith(compareByDescending<MarketAPI?>({ it!!.isMilitary() } ).thenByDescending { it!!.size })
+            markets = markets.sortedWith(compareByDescending<MarketAPI?>( { it!!.isMilitary() } ).thenByDescending { it!!.size } )
 
             var newMarket = markets.firstOrNull()
             if (newMarket != null) {
@@ -101,6 +102,12 @@ class SupervisorScript : EveryFrameScript {
         }
 
         if (supervisor != null) {
+
+            var prior = ContactIntel.getContactIntel(supervisor)
+            if (prior != null) {
+                Global.getSector().intelManager.removeIntel(prior)
+            }
+
             val intel = ContactIntel(supervisor, market)
             intel.state = ContactIntel.ContactState.NON_PRIORITY
             Global.getSector().intelManager.addIntel(intel, false, null)

@@ -8,10 +8,12 @@ object PrivateeringUtils {
 
     var COMMISSION_KEY = "\$privateering_commission_key"
 
+    @JvmStatic
     fun getCommissionData(faction: String) : CommissionData {
         return getCommissionData(Global.getSector().getFaction(faction))
     }
 
+    @JvmStatic
     fun getCommissionData(faction: FactionAPI) : CommissionData {
         var data = faction.memoryWithoutUpdate.get(COMMISSION_KEY) as CommissionData?
         if (data == null) {
@@ -21,6 +23,7 @@ object PrivateeringUtils {
         return data
     }
 
-    fun getSupervisorScript() = Global.getSector().scripts.find { it::class.java == SupervisorScript::class.java }
+    @JvmStatic
+    fun getSupervisorScript() = Global.getSector().scripts.find { it::class.java == SupervisorScript::class.java } as SupervisorScript?
 
 }

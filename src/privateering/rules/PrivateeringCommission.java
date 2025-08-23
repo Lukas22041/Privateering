@@ -1,18 +1,12 @@
 package privateering.rules;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.campaign.CampaignFleetAPI;
-import com.fs.starfarer.api.campaign.CargoAPI;
-import com.fs.starfarer.api.campaign.FactionAPI;
-import com.fs.starfarer.api.campaign.InteractionDialogAPI;
-import com.fs.starfarer.api.campaign.OptionPanelAPI;
-import com.fs.starfarer.api.campaign.RepLevel;
-import com.fs.starfarer.api.campaign.SectorEntityToken;
-import com.fs.starfarer.api.campaign.TextPanelAPI;
+import com.fs.starfarer.api.campaign.*;
 import com.fs.starfarer.api.campaign.econ.MarketAPI;
 import com.fs.starfarer.api.campaign.rules.MemoryAPI;
 import com.fs.starfarer.api.characters.PersonAPI;
@@ -24,11 +18,16 @@ import com.fs.starfarer.api.impl.campaign.intel.BaseIntelPlugin;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel.MissionResult;
 import com.fs.starfarer.api.impl.campaign.intel.BaseMissionIntel.MissionState;
 import com.fs.starfarer.api.impl.campaign.intel.FactionCommissionIntel;
+import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel;
 import com.fs.starfarer.api.impl.campaign.rulecmd.BaseCommandPlugin;
+import com.fs.starfarer.api.impl.campaign.rulecmd.EndConversation;
+import com.fs.starfarer.api.impl.campaign.rulecmd.FireAll;
 import com.fs.starfarer.api.ui.TooltipMakerAPI;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.api.util.Misc.Token;
+import privateering.PrivateeringUtils;
 import privateering.intel.PrivateeringCommissionIntel;
+import privateering.scripts.SupervisorScript;
 
 //Replaces the original Commission Rules Command.
 //"CommissionIntelReplacingScript" exists as a backup in case another mod uses something else than this to give a commission.
@@ -226,7 +225,8 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 		return Ranks.POST_BASE_COMMANDER.equals(person.getPostId()) ||
 			   Ranks.POST_STATION_COMMANDER.equals(person.getPostId()) ||
 			   Ranks.POST_ADMINISTRATOR.equals(person.getPostId()) ||
-			   Ranks.POST_OUTPOST_COMMANDER.equals(person.getPostId());
+			   Ranks.POST_OUTPOST_COMMANDER.equals(person.getPostId()) ||
+				"privateering_commission_supervisor".equals(person.getPostId());
 	}
 	
 	protected void resign(boolean withPenalty) {
@@ -237,6 +237,17 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 			intel.setMissionState(MissionState.ABANDONED);
 			intel.endMission(dialog);
 		}
+
+		//Exit the person interaction if its the commission supervisor
+		if (person != null && person.hasTag("privateering_supervisor")) {
+			dialog.getVisualPanel().hideFirstPerson();
+			dialog.getInteractionTarget().setActivePerson(null);
+			/*((RuleBasedDialog) (dialog)).notifyActivePersonChanged();
+
+			FireAll.fire(null, dialog, memoryMap, "PopulateOptions");*/
+
+			new EndConversation().execute(null, dialog, new ArrayList<>(), memoryMap);
+		}
 	}
 	
 	protected void accept() {
@@ -246,6 +257,27 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 			intel.missionAccepted();
 			intel.sendUpdate(FactionCommissionIntel.UPDATE_PARAM_ACCEPTED, dialog.getTextPanel());
 			intel.makeRepChanges(dialog);
+
+			SupervisorScript script = PrivateeringUtils.getSupervisorScript();
+			if (script != null) {
+
+				script.replaceSupervisor(faction);
+				PersonAPI supervisor = script.getSupervisor();
+				MarketAPI smarket = script.getMarket();
+				ContactIntel contact = ContactIntel.getContactIntel(supervisor);
+
+				dialog.getTextPanel().addPara("Your commission is supervised by " + supervisor.getNameString() + ". " +
+						"Meet " + supervisor.getHimOrHer() + " on " + smarket.getName() + " for more information. ",
+						Misc.getTextColor(), Misc.getHighlightColor(), ""+supervisor.getNameString(), ""+smarket.getName());
+
+				Global.getSector().getIntelManager().addIntelToTextPanel(contact, text);
+
+
+				/*
+				if (supervisor != null) {
+					ContactIntel contact = ContactIntel.getContactIntel(supervisor);
+				}*/
+			}
 		}
 	}
 	
@@ -265,7 +297,7 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 		int stipend = (int) temp.computeStipend();
 		
 		info.addPara("By accepting the commission, you would receive a %s monthly stipend, as well as a modest bounty for destroying enemy ships.",
-				0f, h, Misc.getDGSCredits(PrivateeringCommissionIntel.getBaseCommissionPay()));
+				0f, h, Misc.getDGSCredits(PrivateeringCommissionIntel.getMonthlyBaseIncome()));
 
 		info.addSpacer(10f);
 
