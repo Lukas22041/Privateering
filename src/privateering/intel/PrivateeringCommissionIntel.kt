@@ -17,8 +17,12 @@ import com.fs.starfarer.api.ui.SectorMapAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.util.Misc
 import org.lazywizard.lazylib.MathUtils
+import privateering.CommissionData
+import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
 import privateering.rules.PrivateeringCommission
+import privateering.scripts.addPara
+import privateering.ui.element.RequisitionBar
 
 class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(faction) {
 
@@ -197,7 +201,26 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             var relationMult = (getRelationMult(faction) * 100).toInt()
             info.addPara("The commission covers $relationMult%% of your monthly fleet expenses. Check the Income tab to see more details.", 0f, Misc.getTextColor(), Misc.getHighlightColor(), "$relationMult%", "Income")
+            info.addSpacer(10f)
+
+            var script = PrivateeringUtils.getSupervisorScript()
+            var supervisor = script!!.supervisor
+            var market = script.market
+
+            info.addPara("Combat with hostile factions rewards you with requisition bonds. " +
+                    "Requisition bonds can be spend by meeting with your commission supervisor ${supervisor!!.nameString} on ${market!!.name}.",
+                0f, Misc.getTextColor(), Misc.getHighlightColor(), "requisition bonds", "${supervisor.nameString}", "${market.name}")
+
+            info.addSpacer(30f)
+            var data = PrivateeringUtils.getCommissionData(faction)
+            var reqBar = RequisitionBar(faction.color, data.bonds/CommissionData.maxBonds/*-0.1f*/, data.bonds/CommissionData.maxBonds, info, 180f, 30f)
+
+            reqBar.position.setXAlignOffset(width/2-reqBar.width/2)
+            info.addSpacer(-10f).position.setXAlignOffset(-(width/2-reqBar.width/2))
+
         }
+
+
 
         if (latestResult != null) {
             //Color color = faction.getBaseUIColor();
@@ -222,6 +245,8 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
                     opad)
             }
         }
+
+
     }
 
     override fun reportEconomyTick(iterIndex: Int) {
