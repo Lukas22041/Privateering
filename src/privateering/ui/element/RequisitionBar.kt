@@ -2,6 +2,7 @@ package privateering.ui.element
 
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.ui.Fonts
+import com.fs.starfarer.api.ui.LabelAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.ui.UIComponentAPI
 import com.fs.starfarer.api.util.FaderUtil
@@ -29,6 +30,8 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
     var priorUsage = useage
     var delay = 0f
 
+    var number: LabelAPI? = null
+
     init {
         renderBorder = false
         renderBackground = false
@@ -43,15 +46,12 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
         //label.position.inTMid(-1f-label.computeTextHeight(label.text))
 
         //innerElement.setParaFont("graphics/fonts/victor14.fnt")
-        var number = innerElement.addPara(""+data.bonds.toInt(), 0f, color, color)
+        number = innerElement.addPara(""+data.bonds.toInt(), 0f, color, color)
 
 
-        label.position.inTL(width/2-label.computeTextWidth(label.text)/2-number.computeTextWidth(number.text)/2, -1f-label.computeTextHeight(label.text))
-        number.position.rightOfTop(label as UIComponentAPI, 0-1-(label.getWidth()-label.computeTextWidth(label.text)))
+        label.position.inTL(width/2-label.computeTextWidth(label.text)/2-number!!.computeTextWidth(number!!.text)/2, -1f-label.computeTextHeight(label.text))
+        number!!.position.rightOfTop(label as UIComponentAPI, 0-1-(label.getWidth()-label.computeTextWidth(label.text)))
 
-        advance {
-            number.text = ""+data.bonds.toInt()
-        }
 
         tooltip.addTooltip(elementPanel, TooltipMakerAPI.TooltipLocation.BELOW, 400f) { tooltip ->
             var value = CommissionData.bondValue
@@ -64,10 +64,12 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
 
     override fun advance(amount: Float) {
 
+
         //Keep the current value updated
         var data = PrivateeringUtils.getCommissionData(Misc.getCommissionFaction())
         current = data.bonds/CommissionData.maxBonds
 
+        number?.text = ""+data.bonds.toInt()
 
         fader.advance(amount)
         if (fader.brightness >= 1)

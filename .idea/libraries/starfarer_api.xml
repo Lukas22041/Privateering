@@ -22,7 +22,6 @@
       <root url="jar://$PROJECT_DIR$/../Console Commands/jars/lw_Console.jar!/" />
       <root url="jar://$PROJECT_DIR$/../GraphicsLib/jars/Graphics.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Nexerelin/jars/ExerelinCore.jar!/" />
-      <root url="jar://D:/Downloads/Programming/StarsectorModding/CompileReferences/ShipMasterySystem.jar!/" />
       <root url="jar://$PROJECT_DIR$/../../starsector-core/starfarer.api.jar!/" />
       <root url="jar://$PROJECT_DIR$/../../starsector-core/starfarer_obf.jar!/" />
       <root url="jar://$PROJECT_DIR$/../LazyLib/jars/internal/Kotlin-Runtime.jar!/" />

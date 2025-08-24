@@ -139,8 +139,8 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
     //Required because alex hasnt made the overwrites work for ships and fighters
     fun createProductionPicker(faction: FactionAPI) {
-        var picker = RequisitionProductionPicker(faction)
         var production = FactionProductionOverwrite(faction)
+        var picker = RequisitionProductionPicker(dialog.textPanel, faction, dialog.interactionTarget.market)
         production.delegate = picker
         production.costMult = picker.costMult
 
