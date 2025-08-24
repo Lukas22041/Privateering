@@ -13,7 +13,7 @@ class CommissionData(var faction: FactionAPI) {
         var bondValue = 500f //1 bond = x credits
     }
 
-    var bonds = 800f
+    var bonds = 750f
 
     var lastMercTimestamp: Long? = null
     var mercs = ArrayList<PersonAPI>()

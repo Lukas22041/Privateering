@@ -157,7 +157,7 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
 
         // <draw a quad that dictates you want the boundaries of the panel to be>
 
-        GL11.glRectf(x, y, x + (width * percent), y + height)
+        GL11.glRectf(x+3, y, x + 3 + ((width-6) * percent), y + height)
 
         //GL11.glRectf(x, y, x + width, y + height)
 
