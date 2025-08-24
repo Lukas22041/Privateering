@@ -8,8 +8,10 @@ import com.fs.starfarer.api.util.Misc
 import lunalib.lunaUI.elements.LunaElement
 import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.opengl.GL11
+import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.scripts.addPara
+import privateering.scripts.addTooltip
 import privateering.scripts.getAndLoadSprite
 import privateering.scripts.getWidth
 import java.awt.Color
@@ -41,6 +43,13 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
         label.position.inTL(width/2-label.computeTextWidth(label.text)/2-number.computeTextWidth(number.text)/2, -1f-label.computeTextHeight(label.text))
         number.position.rightOfTop(label as UIComponentAPI, 0-1-(label.getWidth()-label.computeTextWidth(label.text)))
 
+        tooltip.addTooltip(elementPanel, TooltipMakerAPI.TooltipLocation.BELOW, 400f) { tooltip ->
+            var value = CommissionData.bondValue
+            var max = CommissionData.maxBonds.toInt()
+            tooltip.addPara("Requisition bonds are a currency rewarded for performing tasks for your commissioned faction. " +
+                    "A bond is equal to ${Misc.getDGSCredits(value)}, but can only be spend on services provided by your commission supervisor. You can have at most $max bonds.",
+                0f, Misc.getTextColor(), Misc.getHighlightColor(), "${Misc.getDGSCredits(value)}", "$max")
+        }
     }
 
     override fun render(alphaMult: Float) {

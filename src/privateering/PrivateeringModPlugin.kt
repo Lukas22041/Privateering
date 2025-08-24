@@ -40,11 +40,8 @@ class PrivateeringModPlugin : BaseModPlugin() {
         Global.getSector().addTransientScript(CommDirectoryRecolorScript())
         Global.getSector().addTransientScript(CommissionIntelReplacingScript())
 
-        Global.getSector().addScript(object : DelayedActionScript(0.2f) {
-            override fun doAction() {
-                SpendBondsFactor(910, null)
-            }
-        })
+
+        SpendBondsFactor(910, null)
 
     }
 

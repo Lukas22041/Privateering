@@ -216,7 +216,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             var reqBar = RequisitionBar(faction.color, data.bonds/CommissionData.maxBonds/*-0.1f*/, data.bonds/CommissionData.maxBonds, info, 180f, 30f)
 
             reqBar.position.setXAlignOffset(width/2-reqBar.width/2)
-            info.addSpacer(-10f).position.setXAlignOffset(-(width/2-reqBar.width/2))
+            info.addSpacer(-5f).position.setXAlignOffset(-(width/2-reqBar.width/2))
 
         }
 
