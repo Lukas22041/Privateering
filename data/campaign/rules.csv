@@ -1,6 +1,8 @@
 id,trigger,conditions,script,text,options,notes
 ,,,,,,
-,,,,,,
+privateering_openReqBonds,PopulateOptions,"$isPerson
+$privateering_supervisor",,,"5:privateering_openReqBonds:""I'd like to spend my requisition bonds""",
+privateering_openReqBondsScript,DialogOptionSelected,$option == privateering_openReqBonds,PrivateerSupervisorDialog,,,
 ,,,,,,
 cmsn_doesNotMeetCriteria,DialogOptionSelected,"$option == cmsn_askCommission
 !Commission playerMeetsCriteria","SetEnabled cmsn_askCommission false

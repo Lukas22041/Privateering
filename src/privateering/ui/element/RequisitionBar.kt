@@ -4,6 +4,7 @@ import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.ui.Fonts
 import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.ui.UIComponentAPI
+import com.fs.starfarer.api.util.FaderUtil
 import com.fs.starfarer.api.util.Misc
 import lunalib.lunaUI.elements.LunaElement
 import org.lazywizard.lazylib.MathUtils
@@ -22,6 +23,11 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
     var barFill = Global.getSettings().getAndLoadSprite("graphics/ui/priv_requisition_bar_fill.png")
     var barFillFull = Global.getSettings().getAndLoadSprite("graphics/ui/priv_requisition_bar_fill_dark.png")
 
+    var fader = FaderUtil(1f, 0.5f, 0.5f, false, false)
+    var fadeIn = 1f
+
+    var priorUsage = useage
+    var delay = 0f
 
     init {
         renderBorder = false
@@ -43,6 +49,10 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
         label.position.inTL(width/2-label.computeTextWidth(label.text)/2-number.computeTextWidth(number.text)/2, -1f-label.computeTextHeight(label.text))
         number.position.rightOfTop(label as UIComponentAPI, 0-1-(label.getWidth()-label.computeTextWidth(label.text)))
 
+        advance {
+            number.text = ""+data.bonds.toInt()
+        }
+
         tooltip.addTooltip(elementPanel, TooltipMakerAPI.TooltipLocation.BELOW, 400f) { tooltip ->
             var value = CommissionData.bondValue
             var max = CommissionData.maxBonds.toInt()
@@ -52,11 +62,41 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
         }
     }
 
+    override fun advance(amount: Float) {
+        fader.advance(amount)
+        if (fader.brightness >= 1)
+        {
+            fader.fadeOut()
+        }
+        else if (fader.brightness <= 0)
+        {
+            fader.fadeIn()
+        }
+
+
+        if (priorUsage != useage) {
+            priorUsage = useage
+            delay = 0.05f
+        }
+
+        if (delay > 0) {
+            delay -= 1 * amount
+        } else {
+            fadeIn += 3 * amount
+            fadeIn = MathUtils.clamp(fadeIn, 0f, useage)
+        }
+
+
+    }
+
+    fun easeInOutSine(x: Float): Float {
+        return (-(Math.cos(Math.PI * x) - 1) / 2).toFloat();
+    }
+
     override fun render(alphaMult: Float) {
         super.render(alphaMult)
 
         bar.color = color
-        barFillFull.color = color
         barFill.color = color
 
         bar.alphaMult = alphaMult
@@ -68,6 +108,12 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
         startBarStencil(x, y, width, height, current)
 
         barFillFull.alphaMult = alphaMult
+        barFillFull.color = color
+        barFillFull.setSize(width, height)
+        barFillFull.render(x, y)
+
+        barFillFull.color = Color(255, 255, 255)
+        barFillFull.alphaMult = alphaMult * 0.35f * easeInOutSine(fader.brightness)
         barFillFull.setSize(width, height)
         barFillFull.render(x, y)
 
@@ -75,7 +121,7 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
 
         useage = MathUtils.clamp(useage, 0f, 1f)
 
-        startBarStencil(x, y, width, height, useage)
+        startBarStencil(x, y, width, height, fadeIn)
 
         barFill.alphaMult = alphaMult
         barFill.setSize(width, height)
