@@ -2,6 +2,8 @@ package privateering.rules
 
 import com.fs.graphics.util.Fader
 import com.fs.starfarer.api.Global
+import com.fs.starfarer.api.campaign.CustomProductionPickerDelegate
+import com.fs.starfarer.api.campaign.FactionAPI
 import com.fs.starfarer.api.campaign.InteractionDialogAPI
 import com.fs.starfarer.api.campaign.InteractionDialogPlugin
 import com.fs.starfarer.api.campaign.rules.MemoryAPI
@@ -13,13 +15,18 @@ import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.CustomPanelAPI
 import com.fs.starfarer.api.ui.UIPanelAPI
 import com.fs.starfarer.api.util.Misc
+import com.fs.starfarer.campaign.command.CustomProductionPanel
+import com.fs.starfarer.loading.specs.FactionProduction
 import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.input.Keyboard
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.misc.ReflectionUtils
 import privateering.scripts.getChildrenCopy
+import privateering.scripts.getChildrenNonCopy
 import privateering.scripts.getParent
+import privateering.ui.FactionProductionOverwrite
+import privateering.ui.RequisitionProductionPicker
 import privateering.ui.element.RequisitionBar
 
 class PrivateerSupervisorDialog : BaseCommandPlugin() {
@@ -82,10 +89,14 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         var bonds = data.bonds
 
         dialog.optionPanel.addOption("Request faction-grade nanoforge production (25% off)", "NANOFORGE_FACTION")
-        dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "Use your requisition bonds to order custom production. Only ${faction.displayName} blueprints are available.")
+        dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "Use your requisition bonds to order custom production. Only ${faction.displayName} blueprints are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
+        dialog.optionPanel.setTooltipHighlights("NANOFORGE_FACTION", faction.displayName, "Capital ships", "large weapons", "Arsenal Authorization")
+        dialog.optionPanel.setTooltipHighlightColors("NANOFORGE_FACTION", faction.color, Misc.getHighlightColor(), Misc.getHighlightColor(), Misc.getHighlightColor())
 
         dialog.optionPanel.addOption("Request military-grade nanoforge production", "NANOFORGE_ALL")
-        dialog.optionPanel.setTooltip("NANOFORGE_ALL", "Use your requisition bonds to order custom production. Only blueprints that you know are available.")
+        dialog.optionPanel.setTooltip("NANOFORGE_ALL", "Use your requisition bonds to order custom production. Only blueprints that you know are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
+        dialog.optionPanel.setTooltipHighlights("NANOFORGE_ALL", "Capital ships", "large weapons", "Arsenal Authorization")
+        dialog.optionPanel.setTooltipHighlightColors("NANOFORGE_ALL", Misc.getHighlightColor(), Misc.getHighlightColor(), Misc.getHighlightColor())
 
         dialog.optionPanel.addOption("Request ship repairs (D-Mod Removal)", "DMOD_REMOVAL")
         dialog.optionPanel.addOption("Request mercenary officers", "MERC_OFFICERS")
@@ -126,10 +137,31 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         FireAll.fire(null, dialog, memoryMap, "PopulateOptions")
     }
 
+    //Required because alex hasnt made the overwrites work for ships and fighters
+    fun createProductionPicker(faction: FactionAPI) {
+        var picker = RequisitionProductionPicker(faction)
+        var production = FactionProductionOverwrite(faction)
+        production.delegate = picker
+        production.costMult = picker.costMult
+
+        dialog.showCustomProductionPicker(picker)
+        var parent = (dialog as UIPanelAPI).getChildrenNonCopy().last()
+        var custom = ReflectionUtils.get(null, parent, CustomProductionPanel::class.java)
+        ReflectionUtils.set(null, custom!!, production, FactionProduction::class.java)
+    }
+
     override fun optionSelected(optionText: String?, optionData: Any?) {
 
         if (optionData == "sc_convo_question") {
 
+        }
+
+        if (optionData == "NANOFORGE_FACTION") {
+            createProductionPicker(Misc.getCommissionFaction())
+        }
+
+        if (optionData == "NANOFORGE_ALL") {
+            createProductionPicker(Global.getSector().playerFaction)
         }
 
         if (optionData == "RECREATE") {

@@ -63,6 +63,12 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
     }
 
     override fun advance(amount: Float) {
+
+        //Keep the current value updated
+        var data = PrivateeringUtils.getCommissionData(Misc.getCommissionFaction())
+        current = data.bonds/CommissionData.maxBonds
+
+
         fader.advance(amount)
         if (fader.brightness >= 1)
         {

@@ -2,11 +2,17 @@ package privateering
 
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.FactionAPI
+import com.fs.starfarer.api.util.Misc
 import privateering.scripts.SupervisorScript
 
 object PrivateeringUtils {
 
     var COMMISSION_KEY = "\$privateering_commission_key"
+
+    @JvmStatic
+    fun getCommissionData() : CommissionData {
+        return getCommissionData(Global.getSector().getFaction(Misc.getCommissionFactionId()))
+    }
 
     @JvmStatic
     fun getCommissionData(faction: String) : CommissionData {

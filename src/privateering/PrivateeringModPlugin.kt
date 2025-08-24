@@ -4,11 +4,8 @@ import com.fs.starfarer.api.BaseModPlugin
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.util.DelayedActionScript
 import privateering.intel.event.SpendBondsFactor
-import privateering.scripts.CommDirectoryRecolorScript
-import privateering.scripts.CommissionIntelReplacingScript
+import privateering.scripts.*
 import privateering.scripts.CommissionIntelReplacingScript.Companion.replace
-import privateering.scripts.SupervisorScript
-import privateering.scripts.UtilScript
 
 class PrivateeringModPlugin : BaseModPlugin() {
 
@@ -36,6 +33,7 @@ class PrivateeringModPlugin : BaseModPlugin() {
         if (!Global.getSector().hasScript(SupervisorScript::class.java)) {
             Global.getSector().addScript(SupervisorScript())
         }
+        Global.getSector().addTransientScript(ProductionPanelFixScript())
         Global.getSector().addTransientScript(UtilScript())
         Global.getSector().addTransientScript(CommDirectoryRecolorScript())
         Global.getSector().addTransientScript(CommissionIntelReplacingScript())
