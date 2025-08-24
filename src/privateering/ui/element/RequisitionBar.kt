@@ -57,7 +57,7 @@ class RequisitionBar(var color: Color, var useage: Float, var current: Float, to
             var value = CommissionData.bondValue
             var max = CommissionData.maxBonds.toInt()
             tooltip.addPara("Requisition bonds are a currency rewarded for performing tasks for your commissioned faction. " +
-                    "A bond is equal to ${Misc.getDGSCredits(value)}, but can only be spend on services provided by your commission supervisor. You can have at most $max bonds.",
+                    "A bond is equal to ${Misc.getDGSCredits(value)}, but can only be spent on services provided by your commission supervisor. You can have at most $max bonds.",
                 0f, Misc.getTextColor(), Misc.getHighlightColor(), "${Misc.getDGSCredits(value)}", "$max")
         }
     }

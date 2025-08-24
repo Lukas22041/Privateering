@@ -226,7 +226,7 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
         }
         if (stageId == Stage.IMPORTANT)
         {
-            info.addPara("You are important to the preservation of the factions future, worried about other factions poaching you, " +
+            info.addPara("You are important to the preservation of the factions future. Worried about other factions poaching you, " +
                     "${faction.displayNameWithArticle} increased the rewarded amount of requisition bonds from battles by 30%%.", 0f,
                 Misc.getTextColor(), Misc.getHighlightColor(), "requisition bonds", "30%")
         }

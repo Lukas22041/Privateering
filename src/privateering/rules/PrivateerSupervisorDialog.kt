@@ -13,6 +13,7 @@ import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.CustomPanelAPI
 import com.fs.starfarer.api.ui.UIPanelAPI
 import com.fs.starfarer.api.util.Misc
+import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.input.Keyboard
 import privateering.CommissionData
 import privateering.PrivateeringUtils
@@ -69,21 +70,47 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
 
 
+        recreateOptions()
 
+    }
+
+    fun recreateOptions() {
         dialog.optionPanel.clearOptions()
 
-        dialog.optionPanel.addOption("Test1", "1")
-        dialog.optionPanel.addOption("Test2", "2")
-        dialog.optionPanel.addOption("Test3", "3")
+        var faction = Misc.getCommissionFaction()
+        var data = PrivateeringUtils.getCommissionData(faction)
+        var bonds = data.bonds
 
-        dialog.optionPanel.addOption("Back", "BACK")
+        dialog.optionPanel.addOption("Request faction-grade nanoforge production (25% off)", "NANOFORGE_FACTION")
+        dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "Use your requisition bonds to order custom production. Only ${faction.displayName} blueprints are available.")
+
+        dialog.optionPanel.addOption("Request military-grade nanoforge production", "NANOFORGE_ALL")
+        dialog.optionPanel.setTooltip("NANOFORGE_ALL", "Use your requisition bonds to order custom production. Only blueprints that you know are available.")
+
+        dialog.optionPanel.addOption("Request ship repairs (D-Mod Removal)", "DMOD_REMOVAL")
+        dialog.optionPanel.addOption("Request mercenary officers", "MERC_OFFICERS")
+        dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "STATION")
+        dialog.optionPanel.addOption("Request an insignia honoring your achievements (-750 bonds, +1 SP)", "INSIGNIA")
+        if (bonds < 750f) {
+            dialog.optionPanel.setEnabled("INSIGNIA", false)
+            dialog.optionPanel.setTooltip("INSIGNIA", "You do not have enough bonds.")
+        }
+
+
+        dialog.setOptionColor("INSIGNIA", Misc.getStoryOptionColor())
+
+        dialog.optionPanel.addOption("\"I need more time to consider\".", "BACK")
         dialog.optionPanel.setShortcut("BACK", Keyboard.KEY_ESCAPE, false, false, false, true)
+    }
+
+    fun addBackToRecreateOption() {
+        dialog.optionPanel.addOption("Back", "RECREATE")
+        dialog.optionPanel.setShortcut("RECREATE", Keyboard.KEY_ESCAPE, false, false, false, true)
     }
 
     fun returnToPrevious() {
         dialog.optionPanel.clearOptions()
-        dialog.textPanel.addPara("End the conversation", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
-        dialog.textPanel.addPara("You cut the comm-link.")
+        dialog.textPanel.addPara("\"I need more time to consider\".", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
 
         panel.getParent()?.removeComponent(panel)
 
@@ -103,6 +130,11 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
         if (optionData == "sc_convo_question") {
 
+        }
+
+        if (optionData == "RECREATE") {
+            dialog.textPanel.addPara("Back", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+            recreateOptions()
         }
 
         if (optionData == "BACK") {
@@ -140,8 +172,10 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             //reqBar.fadeIn = reqBar.useage
         }
 
-        if (optionText.contains("Test1")) {
-            reqBar.useage = data.bonds/ CommissionData.maxBonds - 0.2f
+        if (optionText.contains("Request an insignia honoring your achievements")) {
+            var used = 750
+            var usage = MathUtils.clamp(used / data.bonds, 0f, 1f)
+            reqBar.useage = reqBar.current * (1-usage)
         }
         else if (optionText.contains("Test2")) {
             reqBar.useage = data.bonds/ CommissionData.maxBonds - 0.3f
