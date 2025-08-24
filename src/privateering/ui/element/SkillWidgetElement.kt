@@ -7,7 +7,7 @@ import org.lwjgl.opengl.GL11
 import privateering.scripts.getAndLoadSprite
 import java.awt.Color
 
-class SkillWidgetElement(var id: String, var activated: Boolean, var canChangeState: Boolean, var preAcquired: Boolean, var iconPath: String, var color: Color, tooltip: TooltipMakerAPI, width: Float, height: Float) : LunaElement(tooltip, width, height) {
+class SkillWidgetElement(var id: String, var activated: Boolean, var canChangeState: Boolean, var preAcquired: Boolean, var iconPath: String, var color: Color, var isElite: Boolean, tooltip: TooltipMakerAPI, width: Float, height: Float) : LunaElement(tooltip, width, height) {
 
     var sprite = Global.getSettings().getSprite(iconPath)
     var inactiveBorder = Global.getSettings().getAndLoadSprite("graphics/ui/priv_skillBorderInactive.png")
@@ -15,6 +15,10 @@ class SkillWidgetElement(var id: String, var activated: Boolean, var canChangeSt
 
     var hoverFade = 0f
     var time = 0f
+
+    var eliteStars = Global.getSettings().getAndLoadSprite("graphics/ui/priv_elite_stars.png")
+    var eliteBackground = Global.getSettings().getAndLoadSprite("graphics/ui/priv_elite_background.png")
+
 
     //var border = Global.getSettings().getSprite("test")
 
@@ -63,7 +67,13 @@ class SkillWidgetElement(var id: String, var activated: Boolean, var canChangeSt
 
         sprite.renderAtCenter(x + (width / 2).toInt(), y + (height / 2).toInt())
 
-
+        if (isElite) {
+            eliteBackground.setNormalBlend()
+            eliteBackground.color = color.darker()
+            eliteBackground.setSize(width, height)
+            eliteBackground.alphaMult = alphaMult * 0.7f
+            eliteBackground.renderAtCenter(x + (width / 2).toInt(), y + (height / 2).toInt())
+        }
 
         if (activated) {
 
@@ -100,6 +110,13 @@ class SkillWidgetElement(var id: String, var activated: Boolean, var canChangeSt
         sprite.alphaMult = alphaMult * 0.5f * hoverFade
         sprite.renderAtCenter(x + (width / 2).toInt(), y + (height / 2).toInt())
 
+        if (isElite) {
+
+            eliteStars.setNormalBlend()
+            eliteStars.setSize(width+12, height+12)
+            eliteStars.alphaMult = alphaMult
+            eliteStars.renderAtCenter(x + (width / 2).toInt(), y + (height / 2).toInt()+7f)
+        }
     }
 
     override fun renderBelow(alphaMult: Float) {

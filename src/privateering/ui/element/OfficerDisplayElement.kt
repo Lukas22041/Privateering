@@ -1,10 +1,9 @@
-package second_in_command.ui.elements
+package privateering.ui.element
 
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.graphics.SpriteAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
-import com.fs.starfarer.api.util.Misc
 import lunalib.lunaUI.elements.LunaElement
 import privateering.scripts.getAndLoadSprite
 import java.awt.Color

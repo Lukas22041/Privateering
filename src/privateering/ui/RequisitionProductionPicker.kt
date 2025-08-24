@@ -19,7 +19,9 @@ import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
 
-class RequisitionProductionPicker(var text: TextPanelAPI, var faction: FactionAPI, var market: MarketAPI) : BaseCustomProductionPickerDelegateImpl() {
+class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI) : BaseCustomProductionPickerDelegateImpl() {
+
+    var faction = Misc.getCommissionFaction()
 
     override fun getMaximumValue(): Float {
         return PrivateeringUtils.getCommissionData().bonds

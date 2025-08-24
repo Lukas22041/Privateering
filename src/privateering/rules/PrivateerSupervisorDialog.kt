@@ -9,7 +9,10 @@ import com.fs.starfarer.api.campaign.rules.MemoryAPI
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.combat.EngagementResultAPI
 import com.fs.starfarer.api.impl.campaign.events.OfficerManagerEvent
+import com.fs.starfarer.api.impl.campaign.ids.Ranks
 import com.fs.starfarer.api.impl.campaign.ids.Skills
+import com.fs.starfarer.api.impl.campaign.ids.Sounds
+import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity
 import com.fs.starfarer.api.impl.campaign.rulecmd.BaseCommandPlugin
 import com.fs.starfarer.api.impl.campaign.rulecmd.FireAll
 import com.fs.starfarer.api.ui.ButtonAPI
@@ -23,6 +26,7 @@ import com.fs.starfarer.ui.impl.StandardTooltipV2Expandable
 import lunalib.lunaExtensions.addLunaElement
 import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.input.Keyboard
+import org.magiclib.kotlin.getMercs
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.misc.ReflectionUtils
@@ -34,8 +38,10 @@ import privateering.ui.RequisitionProductionPicker
 import privateering.ui.element.DialogAptitudeBackgroundElement
 import privateering.ui.element.RequisitionBar
 import privateering.ui.element.SkillSeperatorElement
-import second_in_command.ui.elements.OfficerDisplayElement
 import privateering.ui.element.SkillWidgetElement
+import privateering.ui.element.OfficerDisplayElement
+import java.util.*
+import kotlin.collections.ArrayList
 
 class PrivateerSupervisorDialog : BaseCommandPlugin() {
     override fun execute(ruleId: String?, dialog: InteractionDialogAPI, params: MutableList<Misc.Token>?, memoryMap: MutableMap<String, MemoryAPI>?): Boolean {
@@ -98,18 +104,25 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         var data = PrivateeringUtils.getCommissionData(faction)
         var bonds = data.bonds
 
-        dialog.optionPanel.addOption("Request faction-grade nanoforge production (25% off)", "NANOFORGE_FACTION")
+        dialog.optionPanel.addOption("Request faction nanoforge production (25% off)", "NANOFORGE_FACTION")
         dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "Use your requisition bonds to order custom production. Only ${faction.displayName} blueprints are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
         dialog.optionPanel.setTooltipHighlights("NANOFORGE_FACTION", faction.displayName, "Capital ships", "large weapons", "Arsenal Authorization")
         dialog.optionPanel.setTooltipHighlightColors("NANOFORGE_FACTION", faction.color, Misc.getHighlightColor(), Misc.getHighlightColor(), Misc.getHighlightColor())
 
-        dialog.optionPanel.addOption("Request military-grade nanoforge production", "NANOFORGE_ALL")
+        dialog.optionPanel.addOption("Request custom nanoforge production", "NANOFORGE_ALL")
         dialog.optionPanel.setTooltip("NANOFORGE_ALL", "Use your requisition bonds to order custom production. Only blueprints that you know are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
         dialog.optionPanel.setTooltipHighlights("NANOFORGE_ALL", "Capital ships", "large weapons", "Arsenal Authorization")
         dialog.optionPanel.setTooltipHighlightColors("NANOFORGE_ALL", Misc.getHighlightColor(), Misc.getHighlightColor(), Misc.getHighlightColor())
 
         dialog.optionPanel.addOption("Request ship repairs (D-Mod Removal)", "DMOD_REMOVAL")
+
+        generateMercs()
         dialog.optionPanel.addOption("Request mercenary officers", "MERC_OFFICERS")
+        if (data.mercs.isEmpty()) {
+            dialog.optionPanel.setEnabled("MERC_OFFICERS", false)
+            dialog.optionPanel.setTooltip("MERC_OFFICERS", "There are currently no new mercenaries available")
+        }
+
         dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "STATION")
         dialog.optionPanel.addOption("Request an insignia honoring your achievements (-750 bonds, +1 SP)", "INSIGNIA")
         if (bonds < 750f) {
@@ -150,7 +163,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
     //Required because alex hasnt made the overwrites work for ships and fighters
     fun createProductionPicker(faction: FactionAPI) {
         var production = FactionProductionOverwrite(faction)
-        var picker = RequisitionProductionPicker(dialog.textPanel, faction, dialog.interactionTarget.market)
+        var picker = RequisitionProductionPicker(dialog.textPanel, dialog.interactionTarget.market)
         production.delegate = picker
         production.costMult = picker.costMult
 
@@ -161,6 +174,8 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
     }
 
     override fun optionSelected(optionText: String?, optionData: Any?) {
+
+        var data = PrivateeringUtils.getCommissionData()
 
         if (optionData == "sc_convo_question") {
 
@@ -178,12 +193,53 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
         if (optionData == "MERC_OFFICERS") {
             dialog.textPanel.addPara("Request mercenary officers", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+
             showMercDialog()
+        }
+
+        if (optionData == "INSIGNIA") {
+
+            dialog.textPanel.setFontSmallInsignia()
+            dialog.textPanel.addPara("Spent 750 requisition bonds",  Misc.getHighlightColor(), Misc.getNegativeHighlightColor(), "750")
+            dialog.textPanel.addPara("Gained a story point",  Misc.getStoryOptionColor(), Misc.getStoryOptionColor(), "")
+            dialog.textPanel.setFontInsignia()
+
+            Global.getSector().playerPerson.stats.storyPoints += 1
+            data.bonds = MathUtils.clamp(data.bonds-750, 0f, CommissionData.maxBonds)
+            Global.getSoundPlayer().playUISound(Sounds.STORY_POINT_SPEND, 1f, 1f)
+
+            if (data.bonds < 750) {
+                dialog.optionPanel.setEnabled("INSIGNIA", false)
+                dialog.optionPanel.setTooltip("INSIGNIA", "You do not have enough bonds.")
+            }
+
         }
 
         if (optionData == "RECREATE") {
             dialog.textPanel.addPara("Back", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
             recreateOptions()
+        }
+
+        if (optionData is PersonAPI) {
+            var merc = optionData
+            var cost = getMercCost(merc)
+
+            data.bonds = MathUtils.clamp(data.bonds-cost, 0f, CommissionData.maxBonds)
+
+            dialog.textPanel.setFontSmallInsignia()
+            var label = dialog.textPanel.addPara("Spent ${cost} requisition bonds",  Misc.getHighlightColor(), Misc.getNegativeHighlightColor(), "${cost}")
+            dialog.textPanel.setFontInsignia()
+
+            Global.getSector().playerFleet.fleetData.addOfficer(merc)
+            Misc.setMercHiredNow(merc)
+
+            mercsInSelection.remove(merc)
+            data.mercs.remove(merc)
+
+            AddRemoveCommodity.addOfficerGainText(merc, dialog.textPanel)
+            Global.getSoundPlayer().playUISound(Sounds.STORY_POINT_SPEND, 1f, 1f)
+
+            recreateMercOptions()
         }
 
         if (optionData == "BACK") {
@@ -192,10 +248,39 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
     }
 
 
+    var mercsInSelection = ArrayList<PersonAPI>()
+    fun generateMercs() {
+        var data = PrivateeringUtils.getCommissionData()
+
+        var shouldReset = false
+        if (data.lastMercTimestamp == null) shouldReset = true
+        else if (Global.getSector().clock.getElapsedDaysSince(data.lastMercTimestamp!!) >= 30) {
+            shouldReset = true
+        }
+
+        if (shouldReset) {
+            data.lastMercTimestamp = Global.getSector().clock.timestamp
+            data.mercs.clear()
+
+            for (i in 0 until 2) {
+                var officer = OfficerManagerEvent.createOfficer(Misc.getCommissionFaction(), MathUtils.getRandomNumberInRange(4,6),
+                    OfficerManagerEvent.SkillPickPreference.ANY, false, null, true, true, MathUtils.getRandomNumberInRange(0, 2), Random())
+
+                data.mercs.add(officer)
+                officer.addTag("privateers_merc")
+                officer.rankId = Ranks.SPACE_CAPTAIN
+                officer.postId = Ranks.POST_MERCENARY
+                Misc.setMercenary(officer, true)
+            }
+        }
+
+    }
+
     fun showMercDialog() {
+        var data = PrivateeringUtils.getCommissionData()
+
         dialog.optionPanel.clearOptions()
 
-        var officers = ArrayList<PersonAPI>()
 
         var days = Global.getSettings().getInt("officerMercContractDur")
         var base = Global.getSettings().getInt("officerSalaryBase")
@@ -208,18 +293,62 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         dialog.textPanel.addPara("They expect a salary of atleast ${Misc.getDGSCredits(pay)} per month. These mercenaries are highly professional and do not count towards the usual officer limitations. \"",
             Misc.getTextColor(), Misc.getHighlightColor(), "${Misc.getDGSCredits(pay)}")
 
-        for (i in 0 until 2) {
-            var officer = OfficerManagerEvent.createOfficer(Misc.getCommissionFaction(), MathUtils.getRandomNumberInRange(4,5))
-            officers.add(officer)
+        mercsInSelection.clear()
+        for (merc in data.mercs) {
+            mercsInSelection.add(merc)
         }
 
-        addMercsToDialog(officers)
+        addMercsToDialog(data.mercs)
+
+        recreateMercOptions()
+    }
+
+    fun getMercCost(merc: PersonAPI) : Int{
+        var cost = when(merc.stats.level) {
+            4 -> 50
+            5 -> 75
+            6 -> 100
+            else -> 100
+        }
+        for (skill in merc.stats.skillsCopy) {
+            if (skill.level >= 2) {
+                cost += 10
+            }
+        }
+        return cost
+    }
+
+    fun isAtMaxMercs() : Boolean{
+        var count = 0
+        var fleet = Global.getSector().playerFleet
+        var mercs = fleet.getMercs()
+        for (merc in mercs) {
+            if (merc.person.hasTag("privateers_merc")) {
+                count++
+            }
+        }
+        return count >= 2
+    }
+
+    fun recreateMercOptions() {
+        var data = PrivateeringUtils.getCommissionData()
+        var bonds = data.bonds
+
+        dialog.optionPanel.clearOptions()
+
+        for (merc in mercsInSelection) {
+            dialog.optionPanel.addOption("Hire ${merc.nameString} (-${getMercCost(merc)} bonds)", merc)
+            if (isAtMaxMercs()) {
+                dialog.optionPanel.setEnabled(merc, false)
+                dialog.optionPanel.setTooltip(merc, "You can not have more than 2 contracts with mercenaries from your commission at once.")
+            } else if (bonds < getMercCost(merc)) {
+                dialog.optionPanel.setEnabled(merc, false)
+                dialog.optionPanel.setTooltip(merc, "You do not have enough bonds to hire this mercenary.")
+            }
+        }
 
         addBackToRecreateOption()
     }
-
-
-
 
     override fun optionMousedOver(optionText: String?, optionData: Any?) {
 
@@ -266,13 +395,22 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             reqBar.useage = data.bonds/ CommissionData.maxBonds
         }
 
+        for (merc in mercsInSelection) {
+            if (optionText.contains(merc.nameString)) {
+                var cost = getMercCost(merc)
+                var usage = MathUtils.clamp(cost / data.bonds, 0f, 1f)
+                reqBar.useage = reqBar.current * (1-usage)
+            }
+        }
 
     }
+
 
     fun addMercsToDialog(officers: List<PersonAPI>) {
 
         var tooltip = dialog!!.textPanel.beginTooltip()
         for (officer in officers) {
+
             tooltip.addSpacer(0f)
 
             var width = 500f
@@ -316,11 +454,12 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
                 var isFirst = skills.first() == skill
                 var isLast = skills.last() == skill
+                var isElite = skill.level >= 2f
 
-                var skillElement = SkillWidgetElement(skill.skill.id, true, false, true, skill.skill.spriteName, color, element, 58f, 58f)
+                var skillElement = SkillWidgetElement(skill.skill.id, true, false, true, skill.skill.spriteName, color, isElite, element, 58f, 58f)
 
                 var tooltip = ReflectionUtils.invokeStatic(8, "createSkillTooltip", StandardTooltipV2::class.java,
-                    skill.skill, Global.getSector().playerPerson.stats,
+                    skill.skill, officer.stats,
                     800f, 10f, true, false, 1000, null)
 
                 ReflectionUtils.invokeStatic(2, "addTooltipBelow", StandardTooltipV2Expandable::class.java, skillElement.elementPanel, tooltip)
@@ -353,7 +492,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
             paraElement.innerElement.setParaFont("graphics/fonts/victor14.fnt")
             var namePara = paraElement.innerElement.addPara("${officer.nameString}: lv ${officer.stats.level}", 0f, color, color)
-            namePara.position.inTL(0f,  0f,)
+            namePara.position.inTL(0f, 0f)
 
         }
         dialog.textPanel.addTooltip()

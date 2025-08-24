@@ -2,6 +2,7 @@ package privateering
 
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.FactionAPI
+import com.fs.starfarer.api.characters.PersonAPI
 import privateering.scripts.SupervisorScript
 
 class CommissionData(var faction: FactionAPI) {
@@ -12,7 +13,10 @@ class CommissionData(var faction: FactionAPI) {
         var bondValue = 500f //1 bond = x credits
     }
 
-    var bonds = 600f
+    var bonds = 800f
+
+    var lastMercTimestamp: Long? = null
+    var mercs = ArrayList<PersonAPI>()
 
     init {
 
