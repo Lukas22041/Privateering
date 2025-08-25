@@ -301,10 +301,10 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 
 		info.addSpacer(10f);
 
-		int relMult = (int) (PrivateeringCommissionIntel.getRelationMult(faction) * 100);
+		var percent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent();
 		float compensation = PrivateeringCommissionIntel.getTotalCompensation(faction);
 		info.addPara("At our current relation, we offer to compensate %s of your fleets upkeep. For your current fleet this would be an additional %s credits per month.",
-				0f, Misc.getTextColor(), Misc.getHighlightColor(), relMult+"%", Misc.getDGSCredits(compensation));
+				0f, Misc.getTextColor(), Misc.getHighlightColor(), percent+"%", Misc.getDGSCredits(compensation));
 		
 		List<FactionAPI> hostile = temp.getHostileFactions();
 		if (hostile.isEmpty()) {

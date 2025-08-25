@@ -39,7 +39,7 @@ class PrivateeringModPlugin : BaseModPlugin() {
         Global.getSector().addTransientScript(CommissionIntelReplacingScript())
 
 
-        SpendBondsFactor(910, null)
+        //SpendBondsFactor(910, null)
 
     }
 

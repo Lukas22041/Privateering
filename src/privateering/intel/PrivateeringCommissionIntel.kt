@@ -21,7 +21,6 @@ import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
 import privateering.rules.PrivateeringCommission
-import privateering.scripts.addPara
 import privateering.ui.element.RequisitionBar
 
 class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(faction) {
@@ -42,7 +41,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
     companion object {
 
-        @JvmStatic
+        /*@JvmStatic
         fun getRelationMult(faction: FactionAPI) : Float{
             var relationMult = 0.3f
             if (faction.relToPlayer.isAtWorst(RepLevel.NEUTRAL)) relationMult = 0.4f
@@ -51,12 +50,12 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             if (faction.relToPlayer.isAtWorst(RepLevel.FRIENDLY)) relationMult = 0.7f
             if (faction.relToPlayer.isAtWorst(RepLevel.COOPERATIVE)) relationMult = 0.7f
             return relationMult
-        }
+        }*/
 
         @JvmStatic
         fun getMonthlyBaseIncome() : Float {
             var base = 15000f
-            if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.PROMOTION) == true) base += 10000f
+            if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.PROMOTION) == true) base += 5000f
             return base
         }
 
@@ -64,12 +63,12 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         fun getSupplyCompensation(faction: FactionAPI) : Float {
             var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
 
-            var relationMult = getRelationMult(faction)
+            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
 
             var player = Global.getSector().playerFleet
             var monthly = player.totalSupplyCostPerDay * 30
 
-            var compensation = (monthly * spec.basePrice) * relationMult
+            var compensation = (monthly * spec.basePrice) * coveredMult
             compensation = MathUtils.clamp(compensation, 0f, maxSupplyCompensation)
             return compensation
         }
@@ -77,19 +76,20 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var maxCrewCompensation = 5000f
         fun getCrewCompensation(faction: FactionAPI) : Float {
             val crewSalary = Global.getSettings().getInt("crewSalary")
-            var relationMult = getRelationMult(faction)
+            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
 
             var player = Global.getSector().playerFleet
             val crewCost = player.getCargo().getCrew() * crewSalary
 
-            var compensation = crewCost * relationMult
+            var compensation = crewCost * coveredMult
             compensation = MathUtils.clamp(compensation, 0f, maxCrewCompensation)
             return compensation
         }
 
         var maxOfficerCompensation = 10000f
         fun getOfficerCompensation(faction: FactionAPI) : Float {
-            var relationMult = getRelationMult(faction)
+            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
+
             var player = Global.getSector().playerFleet
             var maxCompensation = 10000f
 
@@ -98,7 +98,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
                 salary += Misc.getOfficerSalary(officer.person)
             }
 
-            var compensation = salary * relationMult
+            var compensation = salary * coveredMult
             compensation = MathUtils.clamp(compensation, 0f, maxOfficerCompensation)
             return compensation
         }
@@ -151,18 +151,18 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             CoreReputationPlugin.addAdjustmentMessage(latestResult.rep1.delta,  faction,null,null,  null,  info,  tc, isUpdate,
                 0f)
         } else if (mode == ListInfoMode.IN_DESC) {
-            var relationMult = (getRelationMult(faction) * 100).toInt()
+            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
             info!!.addPara("%s base bounty per hostile frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
             info.addPara("%s monthly stipend", 0f, tc, h, Misc.getDGSCredits(getMonthlyBaseIncome()))
-            info.addPara("$relationMult%% fleet upkeep covered", 0f, tc, h, "$relationMult%")
+            info.addPara("$coveredPercent%% fleet upkeep covered", 0f, tc, h, "$coveredPercent%")
         } else {
 //			info.addPara("Faction: " + faction.getDisplayName(), initPad, tc,
 //					faction.getBaseUIColor(), faction.getDisplayName());
 //			initPad = 0f;
-            var relationMult = (getRelationMult(faction) * 100).toInt()
+            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
             info!!.addPara("%s base reward per frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
             info.addPara("%s monthly stipend", 0f, tc, h, Misc.getDGSCredits(getMonthlyBaseIncome()))
-            info.addPara("$relationMult%% fleet upkeep covered", 0f, tc, h, "$relationMult%")
+            info.addPara("$coveredPercent%% fleet upkeep covered", 0f, tc, h, "$coveredPercent%")
         }
         unindent(info)
     }
@@ -199,8 +199,8 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             info.addSpacer(opad)
 
-            var relationMult = (getRelationMult(faction) * 100).toInt()
-            info.addPara("The commission covers $relationMult%% of your monthly fleet expenses. Check the Income tab to see more details.", 0f, Misc.getTextColor(), Misc.getHighlightColor(), "$relationMult%", "Income")
+            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
+            info.addPara("The commission covers $coveredPercent%% of your monthly fleet expenses. Check the Income tab to see more details.", 0f, Misc.getTextColor(), Misc.getHighlightColor(), "$coveredPercent%", "Income")
             info.addSpacer(10f)
 
             var script = PrivateeringUtils.getSupervisorScript()
@@ -317,8 +317,9 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
     fun addSupplyNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
 
         var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
-
-        var relationMult = getRelationMult(faction)
+        var data = PrivateeringUtils.getCommissionData()
+        var percentCovered = data.costsCovered
+        var percent = data.getCostsCoveredPercent()
 
         var player = Global.getSector().playerFleet
         var monthly = player.totalSupplyCostPerDay * 30
@@ -341,23 +342,13 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             override fun createTooltip(tooltip: TooltipMakerAPI, expanded: Boolean, tooltipParam: Any) {
                 var label = tooltip.addPara("${faction.displayNameWithArticle.capitalize()} compensates your monthly need of supplies in exchange for your services. " +
-                        "The compensation is based on the base cost of supplies (${Misc.getDGSCredits(spec.basePrice)}) and how many supplies per month your fleet requires. \n\n" +
-                        "" +
-                        "The percentage compensated depends on your relation to the faction: \n" +
-                        "   - 40% at neutral relation\n" +
-                        "   - 50% at favorable relation\n" +
-                        "   - 60% at welcoming relation\n" +
-                        "   - 70% at friendly relation or higher\n" +
-                        "\n" +
+                        "The compensation is based on the base cost of supplies (${Misc.getDGSCredits(spec.basePrice)}) and covers around $percent% of it. \n\n" +
                         "Added up, you currently receive a compensation of around ${Misc.getDGSCredits(compensation)} credits per month. The faction is only willing to provide at most ${Misc.getDGSCredits(maxSupplyCompensation)} credits for your supply costs.",
                     0f)
 
-                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(spec.basePrice)}", "40%", "neutral", "50%", "favorable", "60%","welcoming", "70%", "friendly", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxSupplyCompensation)}")
+                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(spec.basePrice)}", "$percent%", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxSupplyCompensation)}")
                 label.setHighlightColors(faction.baseUIColor, Misc.getHighlightColor(),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.NEUTRAL),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FAVORABLE),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.WELCOMING),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FRIENDLY),
+                    Misc.getHighlightColor(),
                     Misc.getHighlightColor(), Misc.getHighlightColor())
             }
         }
@@ -371,6 +362,10 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var player = Global.getSector().playerFleet
         val crewCost = player.getCargo().getCrew() * crewSalary
         var compensation = getCrewCompensation(faction)
+
+        var data = PrivateeringUtils.getCommissionData()
+        var percentCovered = data.costsCovered
+        var percent = data.getCostsCoveredPercent()
 
         var crewNode = report.getNode(commissionNode, "node_id_stipend_${faction.id}_crew")
         crewNode.income += compensation * mult
@@ -388,23 +383,14 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             override fun createTooltip(tooltip: TooltipMakerAPI, expanded: Boolean, tooltipParam: Any) {
                 var label = tooltip.addPara("${faction.displayNameWithArticle.capitalize()} compensates the salary of your crew. " +
-                        "Your current crew salary is ${Misc.getDGSCredits(crewCost.toFloat())} credits per month. \n\n" +
+                        "Your current crew salary is ${Misc.getDGSCredits(crewCost.toFloat())} credits per month and around $percent% of it will be covered by the faction. \n\n" +
                         "" +
-                        "The percentage compensated depends on your relation to the faction: \n" +
-                        "   - 40% at neutral relation\n" +
-                        "   - 50% at favorable relation\n" +
-                        "   - 60% at welcoming relation\n" +
-                        "   - 70% at friendly relation or higher\n" +
-                        "\n" +
                         "Added up, you currently receive a compensation of around ${Misc.getDGSCredits(compensation)} credits per month. The faction is only willing to provide at most ${Misc.getDGSCredits(maxCrewCompensation)} credits for crew salary.",
                     0f)
 
-                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(crewCost.toFloat())}", "40%", "neutral", "50%", "favorable", "60%","welcoming", "70%", "friendly", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxCrewCompensation)}")
+                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(crewCost.toFloat())}", "$percent%", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxCrewCompensation)}")
                 label.setHighlightColors(faction.baseUIColor, Misc.getHighlightColor(),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.NEUTRAL),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FAVORABLE),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.WELCOMING),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FRIENDLY),
+                    Misc.getHighlightColor(),
                     Misc.getHighlightColor(), Misc.getHighlightColor())
             }
         }
@@ -414,7 +400,9 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
     fun addOfficerNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
 
-        var relationMult = getRelationMult(faction)
+        var data = PrivateeringUtils.getCommissionData()
+        var percentCovered = data.costsCovered
+        var percent = data.getCostsCoveredPercent()
 
         var player = Global.getSector().playerFleet
 
@@ -441,23 +429,14 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             override fun createTooltip(tooltip: TooltipMakerAPI, expanded: Boolean, tooltipParam: Any) {
                 var label = tooltip.addPara("${faction.displayNameWithArticle.capitalize()} compensates the salary of your officers. " +
-                        "Your current officer salary is ${Misc.getDGSCredits(salary)} credits per month. \n\n" +
-                        "" +
-                        "The percentage compensated depends on your relation to the faction: \n" +
-                        "   - 40% at neutral relation\n" +
-                        "   - 50% at favorable relation\n" +
-                        "   - 60% at welcoming relation\n" +
-                        "   - 70% at friendly relation or higher\n" +
-                        "\n" +
+                        "Your current officer salary is ${Misc.getDGSCredits(salary)} credits per month and $percent% of it will be covered by the faction. \n\n" +
+
                         "Added up, you currently receive a compensation of around ${Misc.getDGSCredits(compensation)} credits per month. The faction is only willing to provide at most ${Misc.getDGSCredits(maxOfficerCompensation)} credits for officer salary.",
                     0f)
 
-                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(salary)}", "40%", "neutral", "50%", "favorable", "60%","welcoming", "70%", "friendly", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxOfficerCompensation)}")
+                label.setHighlight("${faction.displayNameWithArticle.capitalize()}", "${Misc.getDGSCredits(salary)}", "$percent%", "${Misc.getDGSCredits(compensation)}", "${Misc.getDGSCredits(maxOfficerCompensation)}")
                 label.setHighlightColors(faction.baseUIColor, Misc.getHighlightColor(),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.NEUTRAL),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FAVORABLE),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.WELCOMING),
-                    Misc.getHighlightColor(), faction.getRelColor(RepLevel.FRIENDLY),
+                    Misc.getHighlightColor(),
                     Misc.getHighlightColor(), Misc.getHighlightColor())
             }
         }

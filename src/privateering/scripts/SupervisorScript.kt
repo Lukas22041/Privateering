@@ -12,6 +12,7 @@ import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel
 import com.fs.starfarer.api.util.IntervalUtil
 import com.fs.starfarer.api.util.Misc
 import org.magiclib.kotlin.isMilitary
+import privateering.intel.SupervisorContactIntel
 
 class SupervisorScript : EveryFrameScript {
 
@@ -108,7 +109,7 @@ class SupervisorScript : EveryFrameScript {
                 Global.getSector().intelManager.removeIntel(prior)
             }
 
-            val intel = ContactIntel(supervisor, market)
+            val intel = SupervisorContactIntel(supervisor!!, market!!)
             intel.state = ContactIntel.ContactState.NON_PRIORITY
             Global.getSector().intelManager.addIntel(intel, false, null)
 

@@ -3,18 +3,24 @@ package privateering.rules
 import com.fs.graphics.util.Fader
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.FactionAPI
+import com.fs.starfarer.api.campaign.FleetMemberPickerListener
 import com.fs.starfarer.api.campaign.InteractionDialogAPI
 import com.fs.starfarer.api.campaign.InteractionDialogPlugin
 import com.fs.starfarer.api.campaign.rules.MemoryAPI
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.combat.EngagementResultAPI
+import com.fs.starfarer.api.combat.ShipVariantAPI
+import com.fs.starfarer.api.fleet.FleetMemberAPI
+import com.fs.starfarer.api.impl.campaign.DModManager
 import com.fs.starfarer.api.impl.campaign.events.OfficerManagerEvent
 import com.fs.starfarer.api.impl.campaign.ids.Ranks
 import com.fs.starfarer.api.impl.campaign.ids.Skills
 import com.fs.starfarer.api.impl.campaign.ids.Sounds
+import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity
 import com.fs.starfarer.api.impl.campaign.rulecmd.BaseCommandPlugin
 import com.fs.starfarer.api.impl.campaign.rulecmd.FireAll
+import com.fs.starfarer.api.loading.HullModSpecAPI
 import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.CustomPanelAPI
 import com.fs.starfarer.api.ui.UIPanelAPI
@@ -30,18 +36,14 @@ import org.magiclib.kotlin.getMercs
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.misc.ReflectionUtils
+import privateering.scripts.baseOrModSpec
 import privateering.scripts.getChildrenCopy
 import privateering.scripts.getChildrenNonCopy
 import privateering.scripts.getParent
 import privateering.ui.FactionProductionOverwrite
 import privateering.ui.RequisitionProductionPicker
-import privateering.ui.element.DialogAptitudeBackgroundElement
-import privateering.ui.element.RequisitionBar
-import privateering.ui.element.SkillSeperatorElement
-import privateering.ui.element.SkillWidgetElement
-import privateering.ui.element.OfficerDisplayElement
+import privateering.ui.element.*
 import java.util.*
-import kotlin.collections.ArrayList
 
 class PrivateerSupervisorDialog : BaseCommandPlugin() {
     override fun execute(ruleId: String?, dialog: InteractionDialogAPI, params: MutableList<Misc.Token>?, memoryMap: MutableMap<String, MemoryAPI>?): Boolean {
@@ -123,7 +125,10 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             dialog.optionPanel.setTooltip("MERC_OFFICERS", "There are currently no new mercenaries available")
         }
 
-        dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "STATION")
+        dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "BUILD_STATION")
+        dialog.optionPanel.setEnabled("BUILD_STATION", false)
+        dialog.optionPanel.setTooltip("BUILD_STATION", "(Not Implemented Yet)")
+
         dialog.optionPanel.addOption("Request an insignia honoring your achievements (-750 bonds, +1 SP)", "INSIGNIA")
         if (bonds < 750f) {
             dialog.optionPanel.setEnabled("INSIGNIA", false)
@@ -191,6 +196,54 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             createProductionPicker(Global.getSector().playerFaction)
         }
 
+        if (optionData == "DMOD_REMOVAL") {
+            memberToRepair = null
+            dialog.textPanel.addPara("Request ship repairs", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+            showDmodDialog()
+        }
+
+        if (optionData == "DMOD_SELECT_SHIP") {
+
+
+            dialog.showFleetMemberPickerDialog("Pick a ship to repair", "Confirm", "Cancel", 3, 10, 64f,
+                true, false, getRestorableShipsWithDmods(), object : FleetMemberPickerListener {
+                    override fun pickedFleetMembers(members: MutableList<FleetMemberAPI>?) {
+                        var first = members!!.firstOrNull()
+                        if (first != null) {
+                            memberToRepair = first
+                            recreateDmodOptions()
+                        }
+                    }
+
+                    override fun cancelledFleetMemberPicking() {
+
+                    }
+                })
+
+        }
+
+        if (optionData == "DMOD_PERFORM_REPAIR" && memberToRepair != null) {
+
+            dialog.textPanel.addPara("Repair the ${memberToRepair!!.shipName}", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+
+            var cost = getRestoreCost(memberToRepair!!)
+
+            for (dmod in getDmods(memberToRepair!!.variant)) {
+                DModManager.removeDMod(memberToRepair!!.variant, dmod.id)
+            }
+
+            dialog.textPanel.setFontSmallInsignia()
+            dialog.textPanel.addPara("Spent ${cost.toInt()} requisition bonds",  Misc.getNegativeHighlightColor(), Misc.getHighlightColor(), "${cost.toInt()}")
+            dialog.textPanel.addPara("Removed all d-mods from the ${memberToRepair!!.shipName}",  Misc.getStoryOptionColor(), Misc.getStoryOptionColor(), "")
+            dialog.textPanel.setFontInsignia()
+
+            data.bonds = MathUtils.clamp(data.bonds-cost, 0f, CommissionData.maxBonds)
+            Global.getSoundPlayer().playUISound(Sounds.STORY_POINT_SPEND, 1f, 1f)
+
+            memberToRepair = null
+            recreateDmodOptions()
+        }
+
         if (optionData == "MERC_OFFICERS") {
             dialog.textPanel.addPara("Request mercenary officers", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
 
@@ -200,7 +253,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         if (optionData == "INSIGNIA") {
 
             dialog.textPanel.setFontSmallInsignia()
-            dialog.textPanel.addPara("Spent 750 requisition bonds",  Misc.getHighlightColor(), Misc.getNegativeHighlightColor(), "750")
+            dialog.textPanel.addPara("Spent 750 requisition bonds",  Misc.getNegativeHighlightColor(), Misc.getHighlightColor(), "750")
             dialog.textPanel.addPara("Gained a story point",  Misc.getStoryOptionColor(), Misc.getStoryOptionColor(), "")
             dialog.textPanel.setFontInsignia()
 
@@ -215,10 +268,14 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
         }
 
+
+
         if (optionData == "RECREATE") {
             dialog.textPanel.addPara("Back", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
             recreateOptions()
         }
+
+
 
         if (optionData is PersonAPI) {
             var merc = optionData
@@ -247,7 +304,92 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         }
     }
 
+    fun showDmodDialog() {
 
+
+        dialog.textPanel.addPara("\"Our restoration teams are able to repair damages ships in your fleet, " +
+                "removing their d-mods. This process is prohibitively expensive, more so than acquiring a new ship.")
+
+        dialog.textPanel.addPara("While still costly, our expert teams are capable of providing this service at a much cheaper price than your usual port service can.\"")
+
+        recreateDmodOptions()
+    }
+
+    var memberToRepair: FleetMemberAPI? = null
+    fun recreateDmodOptions() {
+        var data = PrivateeringUtils.getCommissionData()
+        dialog.optionPanel.clearOptions()
+
+        dialog.optionPanel.addOption("Select a ship", "DMOD_SELECT_SHIP")
+        if (getRestorableShipsWithDmods().isEmpty()) {
+            dialog.optionPanel.setEnabled("DMOD_SELECT_SHIP", false)
+            dialog.optionPanel.setTooltip("DMOD_SELECT_SHIP", "You do not have any ships with d-mods that can be restored. Certain special ships are unfixable.")
+        }
+
+        if (memberToRepair != null) {
+            var cost = getRestoreCost(memberToRepair!!)
+            dialog.optionPanel.addOption("Repair the ${memberToRepair!!.shipName} (-${cost.toInt()} bonds)", "DMOD_PERFORM_REPAIR")
+            if (data.bonds < cost) {
+                dialog.optionPanel.setEnabled("DMOD_PERFORM_REPAIR", false)
+                dialog.optionPanel.setTooltip("DMOD_PERFORM_REPAIR", "You do not have enough bonds to repair this ship.")
+
+            }
+
+        }
+
+
+
+        addBackToRecreateOption()
+
+    }
+
+    val DMOD_BASE_COST: Float = Global.getSettings().getFloat("baseRestoreCostMult") - 0.25f
+    //val DMOD_COST_PER_MOD: Float = Global.getSettings().getFloat("baseRestoreCostMultPerDMod")
+    val DMOD_COST_PER_MOD: Float = MathUtils.clamp(Global.getSettings().getFloat("baseRestoreCostMultPerDMod") - 0.1f, 1f, Float.MAX_VALUE)
+    fun getRestoreCost(member: FleetMemberAPI) : Float {
+        var cost = member.baseValue
+        cost *= DMOD_BASE_COST
+        var dmodsCount = getDmods(member.variant).count()
+
+        //Cost per dmod
+        cost *= Math.pow(DMOD_COST_PER_MOD.toDouble(), dmodsCount.toDouble()).toFloat()
+
+        cost /= CommissionData.bondValue
+
+        return cost
+    }
+
+    //Gray out ship selector if empty
+    fun getRestorableShipsWithDmods() : List<FleetMemberAPI> {
+        var list = ArrayList<FleetMemberAPI>()
+
+        //check if it can be restored first
+        for (member in Global.getSector().playerFleet.fleetData.membersListCopy) {
+            var variant = member.variant
+            var dmods = getDmods(variant)
+            if (dmods.isNotEmpty() && !variant.hasTag(Tags.VARIANT_UNRESTORABLE) && !member.baseOrModSpec().hasTag(Tags.HULL_UNRESTORABLE)) {
+                list.add(member)
+            }
+        }
+
+        return list
+    }
+
+    fun getDmods(variant: ShipVariantAPI) : List<HullModSpecAPI> {
+        var list = ArrayList<HullModSpecAPI>()
+
+        for (id in variant.hullMods) {
+            if (DModManager.getMod(id).hasTag(Tags.HULLMOD_DMOD)) {
+                if (variant.hullSpec.builtInMods.contains(id)) continue
+                list.add(Global.getSettings().getHullModSpec(id))
+            }
+        }
+
+        return list
+    }
+
+
+    //Mercs
     var mercsInSelection = ArrayList<PersonAPI>()
     fun generateMercs() {
         var data = PrivateeringUtils.getCommissionData()
@@ -381,15 +523,14 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         }
 
         if (optionText.contains("Request an insignia honoring your achievements")) {
-            var used = 750
-            var usage = MathUtils.clamp(used / data.bonds, 0f, 1f)
+            var cost = 750
+            var usage = MathUtils.clamp(cost / data.bonds, 0f, 1f)
             reqBar.useage = reqBar.current * (1-usage)
         }
-        else if (optionText.contains("Test2")) {
-            reqBar.useage = data.bonds/ CommissionData.maxBonds - 0.3f
-        }
-        else if (optionText.contains("Test3")) {
-            reqBar.useage = data.bonds/ CommissionData.maxBonds - 0.1f
+        else if (optionText.contains("Repair the") && memberToRepair != null) {
+            var cost = getRestoreCost(memberToRepair!!)
+            var usage = MathUtils.clamp(cost / data.bonds, 0f, 1f)
+            reqBar.useage = reqBar.current * (1-usage)
         }
         else {
             reqBar.useage = data.bonds/ CommissionData.maxBonds

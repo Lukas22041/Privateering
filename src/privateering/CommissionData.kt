@@ -13,7 +13,10 @@ class CommissionData(var faction: FactionAPI) {
         var bondValue = 500f //1 bond = x credits
     }
 
-    var bonds = 750f
+    var bonds = 0f
+
+    var costsCovered = 0.5f
+    fun getCostsCoveredPercent() = Math.round(costsCovered * 100)
 
     var lastMercTimestamp: Long? = null
     var mercs = ArrayList<PersonAPI>()

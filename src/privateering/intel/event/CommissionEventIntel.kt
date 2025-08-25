@@ -147,7 +147,8 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
                 info!!.addPara("Gained access to capital ships and large weapons from custom production.", initPad, tc, h, "capital ships", "large weapons")
             }
             if (esd.id == Stage.PROMOTION) {
-                info!!.addPara("Base commission pay increased by ${Misc.getDGSCredits(10000f)}.", initPad, tc, h, Misc.getDGSCredits(10000f))
+                //info!!.addPara("Base commission pay increased by ${Misc.getDGSCredits(10000f)}.", initPad, tc, h, Misc.getDGSCredits(10000f))
+                info!!.addPara("The faction covers 20%% more of your monthly supply needs and pays you ${Misc.getDGSCredits(5000f)} more per month.", initPad, tc, h, "20%", Misc.getDGSCredits(5000f))
             }
             if (esd.id == Stage.IMPORTANT) {
                 info!!.addPara("Requisition bonds gained from battles increased by 30%%.", initPad, tc, h, "30%")
@@ -221,8 +222,9 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
         }
         if (stageId == Stage.PROMOTION)
         {
-            info.addPara("Your fleet is recognised as a vital part of the factions goals. As reward, your monthly commission payment is increased by ${Misc.getDGSCredits(10000f)}.", 0f,  Misc.getTextColor(), Misc.getHighlightColor(),
-                Misc.getDGSCredits(10000f))
+            info.addPara("Your fleet is recognised as a vital part of the factions goals. To alleviate logistical issues, " +
+                    "the faction is willing to cover 20%% more of your basic maintenance costs and increase its base commission pay by ${Misc.getDGSCredits(5000f)}.", 0f,  Misc.getTextColor(), Misc.getHighlightColor(),
+                "20%", "${Misc.getDGSCredits(5000f)}")
         }
         if (stageId == Stage.IMPORTANT)
         {
@@ -262,7 +264,7 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
 
 
         if (stage!!.id == Stage.PROMOTION) {
-
+            PrivateeringUtils.getCommissionData().costsCovered = 0.7f
         }
 
         if (stage!!.id == Stage.IMPORTANT)
