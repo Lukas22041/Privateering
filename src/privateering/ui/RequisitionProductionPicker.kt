@@ -19,9 +19,8 @@ import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
 
-class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI) : BaseCustomProductionPickerDelegateImpl() {
+class RequisitionProductionPicker(var selection: FactionAPI, var text: TextPanelAPI, var market: MarketAPI) : BaseCustomProductionPickerDelegateImpl() {
 
-    var faction = Misc.getCommissionFaction()
 
     override fun getMaximumValue(): Float {
         return PrivateeringUtils.getCommissionData().bonds
@@ -50,6 +49,8 @@ class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI)
     override fun notifyProductionSelected(production: FactionProductionAPI?) {
         if (production != null ) {
             var data = ProductionReportIntel.ProductionData()
+
+            var faction = Misc.getCommissionFaction()
             var intel = CustomProductionIntel(PrivateeringUtils.getSupervisorScript()!!.supervisor!!, data, market, faction)
             intel.convertProdToCargo(production!!)
 
@@ -83,12 +84,12 @@ class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI)
 
     override fun getCostMult(): Float {
         var value = 1f
-        if (faction == Misc.getCommissionFaction()) value = 0.75f
+        if (selection == Misc.getCommissionFaction()) value = 0.75f
         return value
     }
 
     override fun getAvailableFighters(): MutableSet<String> {
-        return faction.knownFighters
+        return selection.knownFighters
     }
 
 
@@ -97,7 +98,7 @@ class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI)
         var event = CommissionEventIntel.get()
         var allowCapitals = event?.isStageActive(CommissionEventIntel.Stage.ARSENAL_AUTHORIZATION) ?: false
 
-        var ships = faction.knownShips.toMutableSet()
+        var ships = selection.knownShips.toMutableSet()
         for (ship in ArrayList(ships)) {
             var spec = Global.getSettings().getHullSpec(ship)
             if (spec.hullSize == ShipAPI.HullSize.CAPITAL_SHIP && !allowCapitals) {
@@ -113,7 +114,7 @@ class RequisitionProductionPicker(var text: TextPanelAPI, var market: MarketAPI)
         var event = CommissionEventIntel.get()
         var allowCapitals = event?.isStageActive(CommissionEventIntel.Stage.ARSENAL_AUTHORIZATION) ?: false
 
-        var weapons = faction.knownWeapons.toMutableSet()
+        var weapons = selection.knownWeapons.toMutableSet()
         for (weapon in ArrayList(weapons)) {
             var spec = Global.getSettings().getWeaponSpec(weapon)
             if (spec.size == WeaponAPI.WeaponSize.LARGE && !allowCapitals) {

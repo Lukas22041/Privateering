@@ -1,13 +1,17 @@
 package privateering.intel
 
 import com.fs.starfarer.api.Global
+import com.fs.starfarer.api.campaign.BattleAPI
+import com.fs.starfarer.api.campaign.CampaignFleetAPI
 import com.fs.starfarer.api.campaign.FactionAPI
-import com.fs.starfarer.api.campaign.RepLevel
+import com.fs.starfarer.api.campaign.ReputationActionResponsePlugin
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin.ListInfoMode
 import com.fs.starfarer.api.campaign.econ.MonthlyReport
 import com.fs.starfarer.api.campaign.econ.MonthlyReport.FDNode
 import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin
+import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin.RepActionEnvelope
+import com.fs.starfarer.api.impl.campaign.CoreReputationPlugin.RepActions
 import com.fs.starfarer.api.impl.campaign.ids.Commodities
 import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.intel.FactionCommissionIntel
@@ -20,11 +24,18 @@ import org.lazywizard.lazylib.MathUtils
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
+import privateering.intel.event.FoughtFleetFactor
 import privateering.rules.PrivateeringCommission
+import privateering.scripts.levelBetween
 import privateering.ui.element.RequisitionBar
 
 class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(faction) {
 
+
+    class PrivateeringBountyResult(var bonds: Float, payment: Int, fraction: Float, rep: ReputationActionResponsePlugin.ReputationAdjustmentResult?) : CommissionBountyResult(payment, fraction,
+        rep) {
+
+    }
 
     fun updateBaseBounty() {
         baseBounty = Global.getSettings().getFloat("factionCommissionBounty")
@@ -37,6 +48,64 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         if (CommissionEventIntel.get() == null || CommissionEventIntel.get()?.faction != Misc.getCommissionFaction()) {
             CommissionEventIntel(faction)
         }
+    }
+
+    override fun reportBattleOccurred(fleet: CampaignFleetAPI?, primaryWinner: CampaignFleetAPI?, battle: BattleAPI) {
+        if (isEnded || isEnding) return
+
+        if (!battle.isPlayerInvolved) return
+
+        var data = PrivateeringUtils.getCommissionData()
+        var reached = CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) ?: false
+        var bondsMult = 1f
+        if (reached) bondsMult = 1.3f
+        var bountyBonds = 600f
+
+        var payment = 0
+        var paymentForBonds = 0
+        var fpDestroyed = 0f
+        for (otherFleet in battle.nonPlayerSideSnapshot) {
+            if (!faction.isHostileTo(otherFleet.faction)) continue
+
+            var bounty = 0f
+            var bountyForBonds = 0f //Higher by default
+            for (loss in Misc.getSnapshotMembersLost(otherFleet)) {
+                val mult = Misc.getSizeNum(loss.hullSpec.hullSize)
+                bounty += mult * baseBounty
+                bountyForBonds += mult * bountyBonds
+                fpDestroyed += loss.fleetPointCost.toFloat()
+            }
+
+            payment += (bounty * battle.playerInvolvementFraction).toInt()
+            paymentForBonds += (bountyForBonds * battle.playerInvolvementFraction * bondsMult).toInt()
+        }
+
+        if (payment > 0) {
+            Global.getSector().playerFleet.cargo.credits.add(payment.toFloat())
+
+            var bonds = (paymentForBonds / CommissionData.bondValue)
+            if (bonds > 0){
+                data.bonds = MathUtils.clamp(data.bonds+bonds, 0f, CommissionData.maxBonds)
+            }
+
+            val repFP = (fpDestroyed * battle.playerInvolvementFraction).toInt().toFloat()
+            val rep = Global.getSector().adjustPlayerReputation(RepActionEnvelope(RepActions.COMMISSION_BOUNTY_REWARD,
+                repFP,
+                null,
+                null,
+                true,
+                false), faction.id)
+            latestResult = PrivateeringBountyResult(bonds, payment, battle.playerInvolvementFraction, rep)
+            sendUpdateIfPlayerHasIntel(latestResult, false)
+        }
+
+        //Event Progress
+        if (fpDestroyed > 0) {
+            var level = fpDestroyed.levelBetween(0f, 300f)
+            var points = (100 * level).toInt()
+            FoughtFleetFactor(points, null)
+        }
+
     }
 
     companion object {
@@ -140,7 +209,12 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 //			info.addPara("Annulled by " + faction.getDisplayNameWithArticle(), initPad, tc,
 //					faction.getBaseUIColor(), faction.getDisplayNameWithArticleWithoutArticle());
         } else if (isUpdate && latestResult != null) {
-            info!!.addPara("%s received", initPad, tc, h, Misc.getDGSCredits(latestResult.payment.toFloat()))
+            var credits = Misc.getDGSCredits(latestResult.payment.toFloat())
+            var bonds = (latestResult as PrivateeringBountyResult).bonds.toInt()
+            var label = info!!.addPara("$credits received, +$bonds bonds", initPad, tc, h, credits)
+            label.setHighlight(credits, "$bonds")
+            label.setHighlightColors(Misc.getHighlightColor(), faction.color)
+
             if (Math.round(latestResult.fraction * 100f) < 100f) {
                 info!!.addPara("%s share based on damage dealt",
                     0f,
@@ -218,6 +292,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             reqBar.position.setXAlignOffset(width/2-reqBar.width/2)
             info.addSpacer(-5f).position.setXAlignOffset(-(width/2-reqBar.width/2))
 
+            info.addSpacer(10f)
         }
 
 
