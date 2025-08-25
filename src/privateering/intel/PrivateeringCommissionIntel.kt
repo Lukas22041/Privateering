@@ -101,7 +101,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         //Event Progress
         if (fpDestroyed > 0) {
-            var level = fpDestroyed.levelBetween(0f, 300f)
+            var level = fpDestroyed.levelBetween(0f, 350f)
             var points = (100 * level).toInt()
             FoughtFleetFactor(points, null)
         }
