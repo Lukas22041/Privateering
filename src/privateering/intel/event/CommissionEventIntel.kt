@@ -14,6 +14,7 @@ import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.ui.UIPanelAPI
 import com.fs.starfarer.api.util.Misc
 import org.magiclib.kotlin.setAlpha
+import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.misc.ReflectionUtils
 import privateering.scripts.getChildrenCopy
@@ -151,7 +152,8 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
                 info!!.addPara("The faction covers 20%% more of your monthly supply needs and pays you ${Misc.getDGSCredits(5000f)} more per month.", initPad, tc, h, "20%", Misc.getDGSCredits(5000f))
             }
             if (esd.id == Stage.IMPORTANT) {
-                info!!.addPara("Requisition bonds gained from battles increased by 30%%.", initPad, tc, h, "30%")
+                var percent = ((CommissionData.bondsImportantMult-1) * 100).toInt()
+                info!!.addPara("Requisition bonds gained from battles increased by $percent%%.", initPad, tc, h, "$percent%")
             }
 
             return
@@ -228,9 +230,10 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
         }
         if (stageId == Stage.IMPORTANT)
         {
+            var percent = ((CommissionData.bondsImportantMult-1) * 100).toInt()
             info.addPara("You are important to the preservation of the factions future. Worried about other factions poaching you, " +
-                    "${faction.displayNameWithArticle} increased the rewarded amount of requisition bonds from battles by 30%%.", 0f,
-                Misc.getTextColor(), Misc.getHighlightColor(), "requisition bonds", "30%")
+                    "${faction.displayNameWithArticle} increased the rewarded amount of requisition bonds from battles by $percent%%.", 0f,
+                Misc.getTextColor(), Misc.getHighlightColor(), "requisition bonds", "$percent%")
         }
     }
 

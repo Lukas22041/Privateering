@@ -303,9 +303,14 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 
 		var percent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent();
 		float compensation = PrivateeringCommissionIntel.getTotalCompensation(faction);
-		info.addPara("At our current relation, we offer to compensate %s of your fleets upkeep. For your current fleet this would be an additional %s credits per month.",
+		info.addPara("We offer to compensate %s of your fleets upkeep. For your current fleet this would be an additional %s credits per month.",
 				0f, Misc.getTextColor(), Misc.getHighlightColor(), percent+"%", Misc.getDGSCredits(compensation));
-		
+
+		info.addSpacer(10f);
+
+		info.addPara("Performing work for us also rewards you with requisition bonds, which can be traded in with your commission supervisor for additional support.", 0f, Misc.getTextColor(), faction.getColor(), "requisition bonds");
+
+
 		List<FactionAPI> hostile = temp.getHostileFactions();
 		if (hostile.isEmpty()) {
 			info.addPara(Misc.ucFirst(faction.getDisplayNameWithArticle()) + " is not currently hostile to any major factions.", 0f);

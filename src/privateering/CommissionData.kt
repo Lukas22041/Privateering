@@ -11,6 +11,8 @@ class CommissionData(var faction: FactionAPI) {
         var minBonds = 0f
         var maxBonds = 1500f
         var bondValue = 500f //1 bond = x credits
+        var bondsPerFrigate = 600f
+        var bondsImportantMult = 1.25f
     }
 
     var bonds = 0f

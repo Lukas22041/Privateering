@@ -58,8 +58,8 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var data = PrivateeringUtils.getCommissionData()
         var reached = CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) ?: false
         var bondsMult = 1f
-        if (reached) bondsMult = 1.3f
-        var bountyBonds = 600f
+        if (reached) bondsMult = CommissionData.bondsImportantMult
+        var bountyBonds = CommissionData.bondsPerFrigate
 
         var payment = 0
         var paymentForBonds = 0
@@ -101,7 +101,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         //Event Progress
         if (fpDestroyed > 0) {
-            var level = fpDestroyed.levelBetween(0f, 350f)
+            var level = fpDestroyed.levelBetween(0f, 400f)
             var points = (100 * level).toInt()
             FoughtFleetFactor(points, null)
         }
@@ -226,7 +226,11 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
                 0f)
         } else if (mode == ListInfoMode.IN_DESC) {
             var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
-            info!!.addPara("%s base bounty per hostile frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
+            var bondsPer = CommissionData.bondsPerFrigate
+            if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) == true) bondsPer *= CommissionData.bondsImportantMult
+
+            info!!.addPara("%s base bounty per frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
+            info!!.addPara("%s worth of bonds per frigate", 0f, tc, h, Misc.getDGSCredits(bondsPer))
             info.addPara("%s monthly stipend", 0f, tc, h, Misc.getDGSCredits(getMonthlyBaseIncome()))
             info.addPara("$coveredPercent%% fleet upkeep covered", 0f, tc, h, "$coveredPercent%")
         } else {
