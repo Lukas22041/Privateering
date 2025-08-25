@@ -132,7 +132,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         fun getSupplyCompensation(faction: FactionAPI) : Float {
             var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
 
-            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
 
             var player = Global.getSector().playerFleet
             var monthly = player.totalSupplyCostPerDay * 30
@@ -145,7 +145,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var maxCrewCompensation = 5000f
         fun getCrewCompensation(faction: FactionAPI) : Float {
             val crewSalary = Global.getSettings().getInt("crewSalary")
-            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
 
             var player = Global.getSector().playerFleet
             val crewCost = player.getCargo().getCrew() * crewSalary
@@ -157,7 +157,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         var maxOfficerCompensation = 10000f
         fun getOfficerCompensation(faction: FactionAPI) : Float {
-            var coveredMult = PrivateeringUtils.getCommissionData().costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
 
             var player = Global.getSector().playerFleet
             var maxCompensation = 10000f

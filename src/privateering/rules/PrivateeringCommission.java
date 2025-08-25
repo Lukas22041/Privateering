@@ -301,7 +301,7 @@ public class PrivateeringCommission extends BaseCommandPlugin {
 
 		info.addSpacer(10f);
 
-		var percent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent();
+		var percent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent();
 		float compensation = PrivateeringCommissionIntel.getTotalCompensation(faction);
 		info.addPara("At our current relation, we offer to compensate %s of your fleets upkeep. For your current fleet this would be an additional %s credits per month.",
 				0f, Misc.getTextColor(), Misc.getHighlightColor(), percent+"%", Misc.getDGSCredits(compensation));

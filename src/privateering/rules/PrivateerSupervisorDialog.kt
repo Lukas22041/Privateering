@@ -7,6 +7,7 @@ import com.fs.starfarer.api.campaign.FleetMemberPickerListener
 import com.fs.starfarer.api.campaign.InteractionDialogAPI
 import com.fs.starfarer.api.campaign.InteractionDialogPlugin
 import com.fs.starfarer.api.campaign.rules.MemoryAPI
+import com.fs.starfarer.api.characters.MutableCharacterStatsAPI
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.combat.EngagementResultAPI
 import com.fs.starfarer.api.combat.ShipVariantAPI
@@ -562,6 +563,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             panel.addUIElement(element)
 
             var skills = officer.stats.skillsCopy
+            skills = skills.sortedBy { it.skill.governingAptitudeOrder }
             var color = Global.getSettings().getSkillSpec(Skills.HELMSMANSHIP).governingAptitudeColor
 
             element.addSpacer(10f)
