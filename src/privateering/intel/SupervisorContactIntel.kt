@@ -20,6 +20,10 @@ import java.util.*
 
 class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactIntel(person, market) {
 
+    init {
+        isImportant = true
+    }
+
     override fun getName(): String {
         if (state == ContactState.LOST_CONTACT_DECIV) {
             return "Lost Contact: " + person.nameString
@@ -140,7 +144,7 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
 
         info.addSpacer(70f)
 
-        var data = PrivateeringUtils.getCommissionData()
+        var data = PrivateeringUtils.getCommissionData(faction)
         var reqBar = RequisitionBar(faction.color, data.bonds/ CommissionData.maxBonds/*-0.1f*/, data.bonds/ CommissionData.maxBonds, info, 180f, 30f)
 
         reqBar.position.setXAlignOffset(width/2-reqBar.width/2)

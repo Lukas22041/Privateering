@@ -17,6 +17,7 @@ import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.intel.FactionCommissionIntel
 import com.fs.starfarer.api.impl.campaign.intel.PerseanLeagueMembership
 import com.fs.starfarer.api.impl.campaign.shared.SharedData
+import com.fs.starfarer.api.ui.IntelUIAPI
 import com.fs.starfarer.api.ui.SectorMapAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.util.Misc
@@ -55,7 +56,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         if (!battle.isPlayerInvolved) return
 
-        var data = PrivateeringUtils.getCommissionData()
+        var data = PrivateeringUtils.getCommissionData(faction)
         var reached = CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) ?: false
         var bondsMult = 1f
         if (reached) bondsMult = CommissionData.bondsImportantMult
@@ -225,7 +226,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
             CoreReputationPlugin.addAdjustmentMessage(latestResult.rep1.delta,  faction,null,null,  null,  info,  tc, isUpdate,
                 0f)
         } else if (mode == ListInfoMode.IN_DESC) {
-            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
+            var coveredPercent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent()
             var bondsPer = CommissionData.bondsPerFrigate
             if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) == true) bondsPer *= CommissionData.bondsImportantMult
 
@@ -237,8 +238,13 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 //			info.addPara("Faction: " + faction.getDisplayName(), initPad, tc,
 //					faction.getBaseUIColor(), faction.getDisplayName());
 //			initPad = 0f;
-            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
+
+            var bondsPer = CommissionData.bondsPerFrigate
+            if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) == true) bondsPer *= CommissionData.bondsImportantMult
+
+            var coveredPercent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent()
             info!!.addPara("%s base reward per frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
+            info!!.addPara("%s worth of bonds per frigate", 0f, tc, h, Misc.getDGSCredits(bondsPer))
             info.addPara("%s monthly stipend", 0f, tc, h, Misc.getDGSCredits(getMonthlyBaseIncome()))
             info.addPara("$coveredPercent%% fleet upkeep covered", 0f, tc, h, "$coveredPercent%")
         }
@@ -277,7 +283,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
             info.addSpacer(opad)
 
-            var coveredPercent = PrivateeringUtils.getCommissionData().getCostsCoveredPercent()
+            var coveredPercent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent()
             info.addPara("The commission covers $coveredPercent%% of your monthly fleet expenses. Check the Income tab to see more details.", 0f, Misc.getTextColor(), Misc.getHighlightColor(), "$coveredPercent%", "Income")
             info.addSpacer(10f)
 
@@ -326,6 +332,17 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         }
 
 
+    }
+
+    override fun buttonPressConfirmed(buttonId: Any?, ui: IntelUIAPI?) {
+        super.buttonPressConfirmed(buttonId, ui)
+        if (buttonId == BUTTON_ABANDON) {
+            PrivateeringUtils.getSupervisorScript()?.replaceSupervisor(null)
+            CommissionEventIntel.get()?.endImmediately()
+
+            ui?.updateIntelList()
+            //ui?.recreateIntelUI()
+        }
     }
 
     override fun reportEconomyTick(iterIndex: Int) {
@@ -396,7 +413,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
     fun addSupplyNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
 
         var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
-        var data = PrivateeringUtils.getCommissionData()
+        var data = PrivateeringUtils.getCommissionData(faction)
         var percentCovered = data.costsCovered
         var percent = data.getCostsCoveredPercent()
 
@@ -442,7 +459,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         val crewCost = player.getCargo().getCrew() * crewSalary
         var compensation = getCrewCompensation(faction)
 
-        var data = PrivateeringUtils.getCommissionData()
+        var data = PrivateeringUtils.getCommissionData(faction)
         var percentCovered = data.costsCovered
         var percent = data.getCostsCoveredPercent()
 
@@ -479,7 +496,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
     fun addOfficerNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
 
-        var data = PrivateeringUtils.getCommissionData()
+        var data = PrivateeringUtils.getCommissionData(faction)
         var percentCovered = data.costsCovered
         var percent = data.getCostsCoveredPercent()
 

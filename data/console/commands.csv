@@ -1,0 +1,3 @@
+command,class,tags,syntax,help
+AddBonds,privateering.misc.commands.AddBondsCommand,"cheat,campaign",AddBonds <amount>,Add requisition bonds for your current faction.
+AddFavor,privateering.misc.commands.AddFavorCommand,"cheat,campaign",AddFavorCommand <amount>,Add to the favorability major event for your current faction.

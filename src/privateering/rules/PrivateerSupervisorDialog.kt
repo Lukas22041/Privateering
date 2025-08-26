@@ -123,7 +123,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         dialog.optionPanel.addOption("Request mercenary officers", "MERC_OFFICERS")
         if (data.mercs.isEmpty()) {
             dialog.optionPanel.setEnabled("MERC_OFFICERS", false)
-            dialog.optionPanel.setTooltip("MERC_OFFICERS", "There are currently no new mercenaries available")
+            dialog.optionPanel.setTooltip("MERC_OFFICERS", "There are currently no new mercenaries available.")
         }
 
         dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "BUILD_STATION")

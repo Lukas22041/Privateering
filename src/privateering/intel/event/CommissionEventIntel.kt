@@ -247,8 +247,12 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
         //End if no longer commissioned
         if (Misc.getCommissionFaction() != faction) {
             endAfterDelay(0f)
-            Global.getSector().memoryWithoutUpdate[KEY] = null
         }
+    }
+
+    override fun notifyEnded() {
+        super.notifyEnded()
+        Global.getSector().memoryWithoutUpdate[KEY] = null
     }
 
     override fun notifyStageReached(stage: EventStageData?) {
