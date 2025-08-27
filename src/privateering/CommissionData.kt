@@ -13,6 +13,17 @@ class CommissionData(var faction: FactionAPI) {
         var bondValue = 500f //1 bond = x credits
         var bondsPerFrigate = 600f
         var bondsImportantMult = 1.25f
+
+        var stationBuildCost = 1000f
+        var stationSpecId = "station_lowtech1"
+    }
+
+    fun readResolve() : CommissionData {
+        if (hasBuildStation == null) {
+            hasBuildStation = false
+        }
+
+        return this
     }
 
     var bonds = 0f
@@ -22,6 +33,8 @@ class CommissionData(var faction: FactionAPI) {
 
     var lastMercTimestamp: Long? = null
     var mercs = ArrayList<PersonAPI>()
+
+    var hasBuildStation = false
 
     init {
 

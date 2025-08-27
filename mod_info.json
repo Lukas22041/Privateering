@@ -3,7 +3,7 @@
 	"name":"Privateering - Commission Overhaul", # Displayed to the player
 	"author":"Lukas04",
     "utility":"false",
-	"version":"1.0.0",
+	"version":"1.0.1",
 	"description":"Overhauls faction commissions to be more active.",
     "gameVersion": "0.98a-RC8",
   	"jars":["jars/Privateering.jar"],

@@ -2,28 +2,22 @@ package privateering.rules
 
 import com.fs.graphics.util.Fader
 import com.fs.starfarer.api.Global
-import com.fs.starfarer.api.campaign.FactionAPI
-import com.fs.starfarer.api.campaign.FleetMemberPickerListener
-import com.fs.starfarer.api.campaign.InteractionDialogAPI
-import com.fs.starfarer.api.campaign.InteractionDialogPlugin
+import com.fs.starfarer.api.campaign.*
 import com.fs.starfarer.api.campaign.rules.MemoryAPI
-import com.fs.starfarer.api.characters.MutableCharacterStatsAPI
 import com.fs.starfarer.api.characters.PersonAPI
 import com.fs.starfarer.api.combat.EngagementResultAPI
 import com.fs.starfarer.api.combat.ShipVariantAPI
 import com.fs.starfarer.api.fleet.FleetMemberAPI
 import com.fs.starfarer.api.impl.campaign.DModManager
 import com.fs.starfarer.api.impl.campaign.events.OfficerManagerEvent
-import com.fs.starfarer.api.impl.campaign.ids.Ranks
-import com.fs.starfarer.api.impl.campaign.ids.Skills
-import com.fs.starfarer.api.impl.campaign.ids.Sounds
-import com.fs.starfarer.api.impl.campaign.ids.Tags
+import com.fs.starfarer.api.impl.campaign.ids.*
 import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity
 import com.fs.starfarer.api.impl.campaign.rulecmd.BaseCommandPlugin
 import com.fs.starfarer.api.impl.campaign.rulecmd.FireAll
 import com.fs.starfarer.api.loading.HullModSpecAPI
 import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.CustomPanelAPI
+import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.ui.UIPanelAPI
 import com.fs.starfarer.api.util.Misc
 import com.fs.starfarer.campaign.command.CustomProductionPanel
@@ -34,6 +28,7 @@ import lunalib.lunaExtensions.addLunaElement
 import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.input.Keyboard
 import org.magiclib.kotlin.getMercs
+import org.magiclib.kotlin.setFullySurveyed
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.misc.ReflectionUtils
@@ -62,8 +57,12 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
     lateinit var dialog: InteractionDialogAPI
 
+    lateinit var parent: UIPanelAPI
     lateinit var panel: CustomPanelAPI
+    lateinit var element: TooltipMakerAPI
     lateinit var reqBar: RequisitionBar
+
+    var orbitPanel: CustomPanelAPI? = null
 
     override fun init(dialog: InteractionDialogAPI) {
 
@@ -77,14 +76,14 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         var visual = dialog.visualPanel as UIPanelAPI
         var children = visual.getChildrenCopy()
 
-        var parent = children.last() as UIPanelAPI
+        parent = children.last() as UIPanelAPI
 
 
         panel = Global.getSettings().createCustom(1000f, 1000f, null)
         parent.addComponent(panel)
         panel.position.inTL(0f, 0f)
 
-        var element = panel.createUIElement(1000f, 1000f, false)
+        element = panel.createUIElement(1000f, 1000f, false)
         panel.addUIElement(element)
         element.position.inTL(0f, 0f)
 
@@ -102,6 +101,13 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
     fun recreateOptions() {
         dialog.optionPanel.clearOptions()
+
+        if (orbitPanel != null) {
+            orbitPanel!!.getParent()!!.removeComponent(orbitPanel)
+            orbitPanel = null
+            toBuildOrbit = null
+            orbitPicker = null
+        }
 
         var faction = Misc.getCommissionFaction()
         var data = PrivateeringUtils.getCommissionData(faction)
@@ -127,8 +133,11 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         }
 
         dialog.optionPanel.addOption("Request the construction of a personal station in ${faction.displayName} space", "BUILD_STATION")
-        dialog.optionPanel.setEnabled("BUILD_STATION", false)
-        dialog.optionPanel.setTooltip("BUILD_STATION", "(Not Implemented Yet)")
+        if (data.hasBuildStation) {
+            dialog.optionPanel.setEnabled("BUILD_STATION", false)
+            dialog.optionPanel.setTooltip("BUILD_STATION", "You can not build more than one station.")
+        }
+
 
         dialog.optionPanel.addOption("Request an insignia honoring your achievements (-750 bonds, +1 SP)", "INSIGNIA")
         if (bonds < 750f) {
@@ -166,22 +175,10 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         FireAll.fire(null, dialog, memoryMap, "PopulateOptions")
     }
 
-    //Required because alex hasnt made the overwrites work for ships and fighters
-    fun createProductionPicker(faction: FactionAPI) {
-        var production = FactionProductionOverwrite(faction)
-        var picker = RequisitionProductionPicker(faction, dialog.textPanel, dialog.interactionTarget.market)
-        production.delegate = picker
-        production.costMult = picker.costMult
-
-        dialog.showCustomProductionPicker(picker)
-        var parent = (dialog as UIPanelAPI).getChildrenNonCopy().last()
-        var custom = ReflectionUtils.get(null, parent, CustomProductionPanel::class.java)
-        ReflectionUtils.set(null, custom!!, production, FactionProduction::class.java)
-    }
-
     override fun optionSelected(optionText: String?, optionData: Any?) {
 
         var data = PrivateeringUtils.getCommissionData()
+        var faction = Misc.getCommissionFaction()
 
         if (optionData == "sc_convo_question") {
 
@@ -251,6 +248,25 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             showMercDialog()
         }
 
+
+        if (optionData == "BUILD_STATION") {
+            dialog.textPanel.addPara("Request the construction of a personal station in ${faction.displayName} space", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+            showStationBuildDialog()
+        }
+
+
+        if (optionData == "SELECT_STARSYSTEM") {
+            var systems = Global.getSector().economy.marketsCopy.filter { it.faction == faction }.map { it.starSystem }.distinct().toMutableSet()
+            var entities = systems.map { it.center }
+
+            dialog.showCampaignEntityPicker("Select a starsystem to build in.", "Build a station in", "Confirm", faction, entities, PrivateerSystemPicker(systems, this))
+        }
+
+        if (optionData == "BUILD_STATION_DONE") {
+            dialog.textPanel.addPara("Order the construction of the station", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+            construct()
+        }
+
         if (optionData == "INSIGNIA") {
 
             dialog.textPanel.setFontSmallInsignia()
@@ -304,6 +320,113 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             returnToPrevious()
         }
     }
+
+    var toBuildOrbit: OrbitSelectorWidget.SelectedOrbit? = null
+    var orbitPicker: OrbitSelectorWidget? = null
+    fun showStationBuildDialog() {
+
+        dialog.optionPanel.clearOptions()
+        var faction = Misc.getCommissionFaction()
+
+        dialog.textPanel.addPara("\"All successful ${faction.displayName} commission members are permitted to request the construction of a small space station to operate from. " +
+                "The station can only be build in ${faction.displayName} space.", Misc.getTextColor(), faction.color, faction.displayName + " space")
+
+        dialog.textPanel.addPara("The station acts as a size 3 colony under your own command. It can grow up to a maximum size of 4. " +
+                "Only one such station can be requested per captain. The station continues to belong to you even if you were to renounce your commission. \"", Misc.getTextColor(), Misc.getHighlightColor(), "3", "4", "one")
+
+        recreateStationOptions()
+    }
+
+    fun recreateStationOptions() {
+        dialog.optionPanel.clearOptions()
+
+        var data = PrivateeringUtils.getCommissionData()
+
+        dialog.optionPanel.addOption("Select a starsystem", "SELECT_STARSYSTEM")
+
+        var cost = CommissionData.stationBuildCost.toInt()
+        dialog.optionPanel.addOption("Order the construction of the station (-$cost bonds)", "BUILD_STATION_DONE")
+        dialog.optionPanel.addOptionConfirmation("BUILD_STATION_DONE", "Are you sure you want to construct the station?", "Confirm", "Cancel")
+
+        //Add the "no system selected" or "Invalid location" tooltips above this
+        if (toBuildOrbit == null) {
+            dialog.optionPanel.setEnabled("BUILD_STATION_DONE", false)
+            dialog.optionPanel.setTooltip("BUILD_STATION_DONE", "Select a system and a location within the system to start construction.")
+        }
+        else if (data.bonds < cost) {
+            dialog.optionPanel.setEnabled("BUILD_STATION_DONE", false)
+            dialog.optionPanel.setTooltip("BUILD_STATION_DONE", "You do not have enough bonds to construct the station")
+        }
+
+
+
+        addBackToRecreateOption()
+    }
+
+    fun construct() {
+        var orbit = toBuildOrbit ?: return
+
+        var data = PrivateeringUtils.getCommissionData()
+        data.bonds = MathUtils.clamp(data.bonds-CommissionData.stationBuildCost, 0f, CommissionData.maxBonds)
+
+        data.hasBuildStation = true
+
+        dialog.textPanel.setFontSmallInsignia()
+        dialog.textPanel.addPara("Spent ${CommissionData.stationBuildCost.toInt()} requisition bonds",  Misc.getNegativeHighlightColor(), Misc.getHighlightColor(), "${CommissionData.stationBuildCost.toInt()}")
+        dialog.textPanel.addPara("Build an outpost for your own faction",  Misc.getStoryOptionColor(), Misc.getStoryOptionColor(), "")
+        dialog.textPanel.setFontInsignia()
+
+        Global.getSoundPlayer().playUISound(Sounds.STORY_POINT_SPEND, 1f, 1f)
+
+        var system = orbit.focus.starSystem
+        var station = system.addCustomEntity("${CommissionData.stationSpecId}_${Misc.genUID()}", "Outpost", CommissionData.stationSpecId, Factions.PLAYER)
+        Misc.fadeIn(station, 1.5f)
+
+        var orbitRadius = orbit.distance
+        var days = orbitRadius / (5f + Random().nextFloat() * 10f);
+        station.setCircularOrbitWithSpin(orbit.focus, orbit.angle - 180f, orbit.distance, days, -1.5f, 1.5f)
+
+        var market = PrivateeringUtils.addMarketplace(Factions.PLAYER,
+            station,
+            arrayListOf(),
+            "Outpost",
+            3,
+            arrayListOf("priv_commStation"),
+            arrayListOf(Submarkets.LOCAL_RESOURCES, Submarkets.SUBMARKET_STORAGE),
+            arrayListOf(Industries.POPULATION, Industries.SPACEPORT, Industries.WAYSTATION),
+            0.3f,
+            false,
+            false)
+
+
+        //Global.getSector().economy.addMarket(market, false)
+        station.setMarket(market);
+        station.setFaction(Global.getSector().playerFaction.id);
+
+        Misc.setFullySurveyed(market, null, false)
+        market.isPlayerOwned = true
+
+        recreateOptions()
+    }
+
+    fun selectedOrbitForStation(orbit: OrbitSelectorWidget.SelectedOrbit) {
+        toBuildOrbit = orbit
+        recreateStationOptions()
+    }
+
+    //Required because alex hasnt made the overwrites work for ships and fighters
+    fun createProductionPicker(faction: FactionAPI) {
+        var production = FactionProductionOverwrite(faction)
+        var picker = RequisitionProductionPicker(faction, dialog.textPanel, dialog.interactionTarget.market)
+        production.delegate = picker
+        production.costMult = picker.costMult
+
+        dialog.showCustomProductionPicker(picker)
+        var parent = (dialog as UIPanelAPI).getChildrenNonCopy().last()
+        var custom = ReflectionUtils.get(null, parent, CustomProductionPanel::class.java)
+        ReflectionUtils.set(null, custom!!, production, FactionProduction::class.java)
+    }
+
 
     fun showDmodDialog() {
 
@@ -533,6 +656,11 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             var usage = MathUtils.clamp(cost / data.bonds, 0f, 1f)
             reqBar.useage = reqBar.current * (1-usage)
         }
+        else if (optionText.contains("Order the construction of the station")) {
+            var cost = CommissionData.stationBuildCost
+            var usage = MathUtils.clamp(cost / data.bonds, 0f, 1f)
+            reqBar.useage = reqBar.current * (1-usage)
+        }
         else {
             reqBar.useage = data.bonds/ CommissionData.maxBonds
         }
@@ -639,6 +767,51 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
 
         }
         dialog.textPanel.addTooltip()
+    }
+
+    class PrivateerSystemPicker(var systems: MutableSet<StarSystemAPI>, var dialog: SupervisorDialogDelegate) : BaseCampaignEntityPickerListener() {
+        override fun getMenuItemNameOverrideFor(entity: SectorEntityToken?): String? {
+            return entity?.starSystem?.nameWithNoType
+        }
+
+        override fun canConfirmSelection(entity: SectorEntityToken?): Boolean {
+            return entity != null
+        }
+
+        override fun pickedEntity(entity: SectorEntityToken?) {
+            var system = entity?.starSystem ?: return
+
+            //Only show this dialog the first time picking a system
+            if (dialog.orbitPanel == null) {
+
+                dialog.dialog.textPanel.addPara("Select a starsystem", Misc.getBasePlayerColor(), Misc.getBasePlayerColor())
+                dialog.dialog.textPanel.addPara("Select an orbit for the new station to inhabit on the right. " +
+                        "Click to select an orbit and drag to move the map around. The line being red implies that the orbit is to close to its celestial body.",
+                    Misc.getTextColor(), Misc.getNegativeHighlightColor(), "red")
+            }
+
+            if (dialog.orbitPanel != null) {
+                dialog.orbitPanel!!.getParent()!!.removeComponent(dialog.orbitPanel)
+                dialog.orbitPicker = null
+                dialog.toBuildOrbit = null
+            }
+
+            //var parent = dialog.dialog.visualPanel as UIPanelAPI
+            dialog.orbitPanel = Global.getSettings().createCustom(1000f, 1000f, null)
+            dialog.parent.addComponent(dialog.orbitPanel)
+            dialog.orbitPanel!!.position.inTL(0f, 0f)
+
+            var orbitElement = dialog.orbitPanel!!.createUIElement(1000f, 1000f, false)
+            dialog.orbitPanel!!.addUIElement(orbitElement)
+            orbitElement.position.inTL(0f, 0f)
+            dialog.orbitPicker = OrbitSelectorWidget(dialog, system, orbitElement, 365f, 220f)
+
+            dialog.orbitPicker!!.position.inTL(3f, 225f)
+        }
+
+        override fun getStarSystemsToShow(): MutableSet<StarSystemAPI> {
+            return systems
+        }
     }
 
     override fun backFromEngagement(battleResult: EngagementResultAPI?) {

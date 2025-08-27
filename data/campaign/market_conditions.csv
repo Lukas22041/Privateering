@@ -1,0 +1,3 @@
+name,id,tags,planetary,decivRemove,script,desc,icon,order
+,,,,,,,,
+Commissioned Station,priv_commStation,,TRUE,,privateering.campaign.conditions.CommissionStationCondition,,graphics/icons/markets/priv_orbital_station.png,1000

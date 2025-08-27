@@ -1,4 +1,17 @@
+Version 1.0.1
+Save Compatible 
+
+- Added the ability to request a station (colony) from your commissioned faction.
+- The commission intel now displays how many bonds you get from defeating hostile ships.
+- Added a mention of requisition bonds to the commission accepting dialog.
+- Decreased the bonds multiplier of the last event stage from 30% to 25%.
+- The supervisors intel is now set to important by default.
+- Added the "AddBonds" and "AddFavor" console commands.
+- Fixed a crash that occured when resigning by clicking the button in the Commission Intel.
+
+
+
 Version 1.0.0
 
--> Release Version
+- Release Version
 
