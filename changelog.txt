@@ -5,7 +5,7 @@ Save Compatible
 - Made the rate at which you gain favor slightly faster.
 - The Supervisor and Event intel should now also show under the factions intel tags.
 - The bounty paid per frigate should no longer be overwritten by Ruthless Sector.
-- MRC (Arma) commissions will now always be on new meshan.
+- MRC (Arma) commissions supervisors will now always be on new meshan.
 - Fixed an issue where the commission supervisor cant spawn on custom starts with factions that have no markets.
 
 
