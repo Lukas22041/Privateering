@@ -11,6 +11,7 @@ import com.fs.starfarer.api.ui.TooltipMakerAPI
 import com.fs.starfarer.api.util.Misc
 import org.lazywizard.lazylib.MathUtils
 import privateering.intel.event.CommissionEventIntel
+import privateering.misc.PrivSettings
 
 class FoughtFleetFactor(var points: Int, dialog: InteractionDialogAPI?) : BaseOneTimeFactor(points) {
 

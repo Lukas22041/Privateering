@@ -41,6 +41,7 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
 
     override fun getIntelTags(map: SectorMapAPI?): MutableSet<String> {
         var tags = super.getIntelTags(map)
+        tags.add(person.faction.id)
         tags.add("Commission")
         return tags
     }

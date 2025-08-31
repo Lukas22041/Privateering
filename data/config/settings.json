@@ -6,8 +6,8 @@
 	
 	
 	
-	"factionCommissionStipendBase":15000,
-	"factionCommissionStipendPerLevel":0,
+	#"factionCommissionStipendBase":15000,
+	#"factionCommissionStipendPerLevel":0,
 	
 	
  }

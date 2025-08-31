@@ -126,7 +126,7 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
     }
 
     override fun getIntelTags(map: SectorMapAPI?): MutableSet<String> {
-        return mutableSetOf("Commission", Tags.INTEL_MAJOR_EVENT)
+        return mutableSetOf("Commission", Tags.INTEL_MAJOR_EVENT, faction.id)
     }
 
 
@@ -271,7 +271,7 @@ class CommissionEventIntel(var faction: FactionAPI) : BaseEventIntel() {
 
 
         if (stage!!.id == Stage.PROMOTION) {
-            PrivateeringUtils.getCommissionData().costsCovered = 0.7f
+            //PrivateeringUtils.getCommissionData().costsCovered = 0.7f
         }
 
         if (stage!!.id == Stage.IMPORTANT)

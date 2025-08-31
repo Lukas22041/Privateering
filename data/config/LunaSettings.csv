@@ -1,0 +1,12 @@
+fieldID,fieldName,fieldType,defaultValue,secondaryValue,fieldDescription,minValue,maxValue,tab
+,,,,,,,,
+priv_head_text,,Text,"[Privateering] is a simple overhaul to faction commissions, aiming to make rewards provided by your faction less passive, while keeping them as the safety net that they are supposed to be.",,,,,
+,,,,,,,,
+sc_playerHeader,Resources,Header,Resources,,,,,
+priv_commissionBase,Base commission income,Int,15000,,"The guaranteed monthly income that your commission provides you with. Privateering default is [15000], vanilla default is [20000].",5000,50000,
+priv_commissionPerLevel,Base commission income per player level,Int,0,,"How much your commission pay is increased per player level. Privateering removes this by default, vanillas default is [5000] per level. Most added features of the mod act to replace this income, so re-enabling it may make the game very easy.",0,10000,
+priv_commissionBountyBase,Base bounty pay per frigate,Int,300,,How much you get paid per hostile frigate defeated. Gets multiplied by [1/2/3/5] based on hullsize. Default is same as vanilla.,100,1500,
+priv_bondsBountyBase,Base requisition bonds per frigate (in credits),Int,600,,"How many bonds are provided per hostile frigate defeated. Gets multiplied by [1/2/3/5] based on hullsize. Requisition bonds are a new resource gained from combat that can only be spent for certain services. One bond is equal to [500] credits, as such the default would be equal to [1.2] bonds per frigate.",100,1500,
+priv_maintenanceCovered,Maintenance cost coverage,Double,0.5,,"How much of your monthly use of supplies and upkeep of crew and officers is covered by your commissioned faction ([0.5 = 50%%]). The supply coverage is capped to [20000] credits, the crew coverage is capped to [5000] credits and the officer coverage is capped to [10000] credits.",0.0,1,
+priv_favorMult,Faction favorability multiplier,Double,1,,Multiplier to the favorability gain with your commissioned faction. Favorability is a new major intel event with small rewards for reaching certain milestones.,0.25,2,
+,,,,,,,,

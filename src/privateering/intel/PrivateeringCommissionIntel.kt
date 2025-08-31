@@ -26,6 +26,7 @@ import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.intel.event.CommissionEventIntel
 import privateering.intel.event.FoughtFleetFactor
+import privateering.misc.PrivSettings
 import privateering.rules.PrivateeringCommission
 import privateering.scripts.levelBetween
 import privateering.ui.element.RequisitionBar
@@ -39,7 +40,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
     }
 
     fun updateBaseBounty() {
-        baseBounty = Global.getSettings().getFloat("factionCommissionBounty")
+        baseBounty = PrivSettings.baseBountyPay!!.toFloat()
         if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.WARFLEET) == true) baseBounty += 200;
     }
 
@@ -60,7 +61,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var reached = CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) ?: false
         var bondsMult = 1f
         if (reached) bondsMult = CommissionData.bondsImportantMult
-        var bountyBonds = CommissionData.bondsPerFrigate
+        var bountyBonds = PrivSettings.baseBondsPay!!.toFloat()
 
         var payment = 0
         var paymentForBonds = 0
@@ -102,9 +103,9 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         //Event Progress
         if (fpDestroyed > 0) {
-            var level = fpDestroyed.levelBetween(0f, 400f)
-            var points = (100 * level).toInt()
-            FoughtFleetFactor(points, null)
+            var level = fpDestroyed.levelBetween(0f, 350f)
+            var points = (100 * level * PrivSettings.favorabilityMult!!).toInt()
+            FoughtFleetFactor(points , null)
         }
 
     }
@@ -124,7 +125,8 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         @JvmStatic
         fun getMonthlyBaseIncome() : Float {
-            var base = 15000f
+            var base = PrivSettings.baseCommIncome!!.toFloat()
+            base += PrivSettings.baseCommIncomePerLevel!!.toFloat() * (Global.getSector()?.playerStats?.level ?: 1)
             if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.PROMOTION) == true) base += 5000f
             return base
         }
@@ -133,7 +135,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         fun getSupplyCompensation(faction: FactionAPI) : Float {
             var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
 
-            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).getCostsCovered()
 
             var player = Global.getSector().playerFleet
             var monthly = player.totalSupplyCostPerDay * 30
@@ -146,7 +148,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var maxCrewCompensation = 5000f
         fun getCrewCompensation(faction: FactionAPI) : Float {
             val crewSalary = Global.getSettings().getInt("crewSalary")
-            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).getCostsCovered()
 
             var player = Global.getSector().playerFleet
             val crewCost = player.getCargo().getCrew() * crewSalary
@@ -158,7 +160,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         var maxOfficerCompensation = 10000f
         fun getOfficerCompensation(faction: FactionAPI) : Float {
-            var coveredMult = PrivateeringUtils.getCommissionData(faction).costsCovered
+            var coveredMult = PrivateeringUtils.getCommissionData(faction).getCostsCovered()
 
             var player = Global.getSector().playerFleet
             var maxCompensation = 10000f
@@ -227,7 +229,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
                 0f)
         } else if (mode == ListInfoMode.IN_DESC) {
             var coveredPercent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent()
-            var bondsPer = CommissionData.bondsPerFrigate
+            var bondsPer = PrivSettings.baseBondsPay!!.toFloat()
             if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) == true) bondsPer *= CommissionData.bondsImportantMult
 
             info!!.addPara("%s base bounty per frigate", initPad, tc, h, Misc.getDGSCredits(baseBounty))
@@ -239,7 +241,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 //					faction.getBaseUIColor(), faction.getDisplayName());
 //			initPad = 0f;
 
-            var bondsPer = CommissionData.bondsPerFrigate
+            var bondsPer = PrivSettings.baseBondsPay!!.toFloat()
             if (CommissionEventIntel.get()?.isStageActive(CommissionEventIntel.Stage.IMPORTANT) == true) bondsPer *= CommissionData.bondsImportantMult
 
             var coveredPercent = PrivateeringUtils.getCommissionData(faction).getCostsCoveredPercent()
@@ -414,7 +416,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
 
         var spec = Global.getSettings().getCommoditySpec(Commodities.SUPPLIES)
         var data = PrivateeringUtils.getCommissionData(faction)
-        var percentCovered = data.costsCovered
+        var percentCovered = data.getCostsCovered()
         var percent = data.getCostsCoveredPercent()
 
         var player = Global.getSector().playerFleet
@@ -460,7 +462,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
         var compensation = getCrewCompensation(faction)
 
         var data = PrivateeringUtils.getCommissionData(faction)
-        var percentCovered = data.costsCovered
+        var percentCovered = data.getCostsCovered()
         var percent = data.getCostsCoveredPercent()
 
         var crewNode = report.getNode(commissionNode, "node_id_stipend_${faction.id}_crew")
@@ -497,7 +499,7 @@ class PrivateeringCommissionIntel(faction: FactionAPI) : FactionCommissionIntel(
     fun addOfficerNode(report: MonthlyReport, commissionNode: FDNode, mult: Float) {
 
         var data = PrivateeringUtils.getCommissionData(faction)
-        var percentCovered = data.costsCovered
+        var percentCovered = data.getCostsCovered()
         var percent = data.getCostsCoveredPercent()
 
         var player = Global.getSector().playerFleet

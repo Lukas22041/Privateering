@@ -7,10 +7,13 @@ import com.fs.starfarer.api.campaign.PersonImportance
 import com.fs.starfarer.api.campaign.TextPanelAPI
 import com.fs.starfarer.api.campaign.econ.MarketAPI
 import com.fs.starfarer.api.characters.PersonAPI
+import com.fs.starfarer.api.impl.campaign.ids.Factions
 import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel
 import com.fs.starfarer.api.util.IntervalUtil
 import com.fs.starfarer.api.util.Misc
+import org.lazywizard.lazylib.MathUtils
+import org.magiclib.kotlin.getFactionMarkets
 import org.magiclib.kotlin.isMilitary
 import privateering.intel.SupervisorContactIntel
 
@@ -83,9 +86,29 @@ class SupervisorScript : EveryFrameScript {
 
             var markets = Misc.getFactionMarkets(faction)
             markets = markets.filterNotNull()
+
+
             markets = markets.sortedWith(compareByDescending<MarketAPI?>( { it!!.isMilitary() } ).thenByDescending { it!!.size } )
 
+            //Random Independent market if faction has no markets
+            if (markets.isEmpty()) {
+                markets = Misc.getFactionMarkets(Factions.INDEPENDENT)
+            }
+            //If theres not even any independent market, just pick a random one.
+            if (markets.isEmpty()) {
+                markets = Global.getSector().economy.marketsCopy
+            }
+
             var newMarket = markets.firstOrNull()
+
+            //If Arma MRC start, always set to new meshan, if it exists
+            if (faction.id == "armaarmatura_pirates") {
+                var meshan = Global.getSector().economy.getMarket("armaa_meshanii_market")
+                if (meshan != null) {
+                    newMarket = meshan
+                }
+            }
+
             if (newMarket != null) {
                 supervisor = newSupervisor
                 market = newMarket

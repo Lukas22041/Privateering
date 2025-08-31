@@ -3,7 +3,9 @@ package privateering
 import com.fs.starfarer.api.BaseModPlugin
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.util.DelayedActionScript
+import lunalib.lunaSettings.LunaSettings
 import privateering.intel.event.SpendBondsFactor
+import privateering.misc.PrivSettings
 import privateering.scripts.*
 import privateering.scripts.CommissionIntelReplacingScript.Companion.replace
 
@@ -17,7 +19,7 @@ class PrivateeringModPlugin : BaseModPlugin() {
                     "due to overhauling the same system. Disable either one of them to launch the game.\n")
         }
 
-
+        LunaSettings.addSettingsListener(PrivSettings)
     }
 
     override fun onNewGameAfterEconomyLoad() {
