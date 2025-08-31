@@ -4,16 +4,14 @@ import com.fs.starfarer.api.EveryFrameScript
 import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.FactionAPI
 import com.fs.starfarer.api.campaign.PersonImportance
-import com.fs.starfarer.api.campaign.TextPanelAPI
 import com.fs.starfarer.api.campaign.econ.MarketAPI
 import com.fs.starfarer.api.characters.PersonAPI
+import com.fs.starfarer.api.impl.campaign.ids.Conditions
 import com.fs.starfarer.api.impl.campaign.ids.Factions
 import com.fs.starfarer.api.impl.campaign.ids.Tags
 import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel
 import com.fs.starfarer.api.util.IntervalUtil
 import com.fs.starfarer.api.util.Misc
-import org.lazywizard.lazylib.MathUtils
-import org.magiclib.kotlin.getFactionMarkets
 import org.magiclib.kotlin.isMilitary
 import privateering.intel.SupervisorContactIntel
 
@@ -24,12 +22,11 @@ class SupervisorScript : EveryFrameScript {
 
     var supervisors = HashMap<FactionAPI, Pair<PersonAPI, MarketAPI>>()
 
-    var interval = IntervalUtil(0.2f, 0.2f)
+    var interval = IntervalUtil(0.3f, 0.35f)
 
     override fun isDone(): Boolean {
         return false
     }
-
 
     override fun runWhilePaused(): Boolean {
         return true
@@ -46,7 +43,22 @@ class SupervisorScript : EveryFrameScript {
                 replaceSupervisor(faction)
             }
 
+            //Relocate to another market from same faction, but only if there are any.
+            if (supervisor != null && market != null) {
+                if (market!!.factionId != supervisor!!.faction.id) {
+                    var markets = Misc.getFactionMarkets(faction)
+                    markets = markets.filterNotNull()
+                    markets = markets.sortedWith(compareByDescending<MarketAPI?>( { it!!.isMilitary() } ).thenByDescending { it!!.size } )
 
+                    if (markets.isNotEmpty()) {
+                        var pick = markets.first()
+
+                        market = pick
+                        supervisors.set(faction, Pair(supervisor!!, market!!))
+                        ContactIntel.getContactIntel(supervisor).relocateToMarket(market, true)
+                    }
+                }
+            }
 
         }
 

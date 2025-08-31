@@ -4,15 +4,12 @@ import com.fs.starfarer.api.Global
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin.ListInfoMode
 import com.fs.starfarer.api.campaign.econ.MarketAPI
 import com.fs.starfarer.api.characters.PersonAPI
+import com.fs.starfarer.api.impl.campaign.ids.Conditions
 import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel
 import com.fs.starfarer.api.impl.campaign.missions.hub.BaseMissionHub
-import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.SectorMapAPI
 import com.fs.starfarer.api.ui.TooltipMakerAPI
-import com.fs.starfarer.api.ui.TooltipMakerAPI.TooltipCreator
-import com.fs.starfarer.api.ui.TooltipMakerAPI.TooltipLocation
 import com.fs.starfarer.api.util.Misc
-import org.lwjgl.input.Keyboard
 import privateering.CommissionData
 import privateering.PrivateeringUtils
 import privateering.ui.element.RequisitionBar
@@ -22,6 +19,22 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
 
     init {
         isImportant = true
+    }
+
+    override fun relocateToMarket(other: MarketAPI?, withIntelUpdate: Boolean) {
+        if (wasAddedToCommDirectory != null && wasAddedToCommDirectory && market != null && market.commDirectory != null) {
+            market.commDirectory.removePerson(person)
+            wasAddedToCommDirectory = null
+        }
+        market = other
+        person.market = other
+        marketWasDeciv = other!!.hasCondition(Conditions.DECIVILIZED)
+        ensureIsInCommDirectory()
+        ensureIsAddedToMarket()
+        //person.importance = person.importance.prev()
+        if (withIntelUpdate) {
+            sendUpdateIfPlayerHasIntel(UPDATE_RELOCATED_CONTACT, false)
+        }
     }
 
     override fun getName(): String {
@@ -231,6 +244,81 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
         delete.setShortcut(Keyboard.KEY_G, true)*/
 
 
+    }
+
+    override fun addBulletPoints(info: TooltipMakerAPI, mode: ListInfoMode) {
+        val h = Misc.getHighlightColor()
+        val g = Misc.getGrayColor()
+        val tc = getBulletColorForMode(mode)
+
+        val pad = 3f
+        val opad = 10f
+
+        var initPad = pad
+        if (mode == ListInfoMode.IN_DESC) initPad = opad
+
+        bullet(info)
+
+        if (getListInfoParam() === UPDATE_RELOCATED_CONTACT) {
+            info.addPara("Relocated to " + market.name, tc, initPad)
+            initPad = 0f
+            //info.addPara("Importance reduced to: %s", initPad, tc, h, person.importance.displayName)
+            initPad = 0f
+            unindent(info)
+            return
+        }
+        if (state == ContactState.LOST_CONTACT_DECIV) {
+            if (mode != ListInfoMode.IN_DESC) {
+                info.addPara(market.name + " decivilized", tc, initPad)
+                initPad = 0f
+            }
+            unindent(info)
+            return
+        }
+
+        if (state == ContactState.LOST_CONTACT) {
+            unindent(info)
+            return
+        }
+
+        addFactionPara(info, tc, initPad)
+        initPad = 0f
+
+        addTypePara(info, tc, initPad)
+        initPad = 0f
+
+        if (mode != ListInfoMode.IN_DESC) {
+            info.addPara("Importance: %s", initPad, tc, h, person.importance.displayName)
+            initPad = 0f
+
+            if (state == ContactState.PRIORITY || state == ContactState.NON_PRIORITY || state == ContactState.SUSPENDED) {
+                val ts = BaseMissionHub.getLastOpenedTimestamp(person)
+                if (ts <= Long.MIN_VALUE) {
+                    //info.addPara("Never visited.", opad);
+                } else {
+                    info.addPara("Last visited: %s.", initPad, tc, h, Misc.getDetailedAgoString(ts))
+                    initPad = 0f
+                }
+            }
+        }
+
+
+//		info.addPara("Rank: %s", initPad, tc, h, person.getRank());
+//		initPad = 0f;
+
+//		info.addPara("Post: %s", initPad, tc, h, person.getPost());
+//		initPad = 0f;
+        if (state == ContactState.POTENTIAL && POTENTIAL_EXPIRES) {
+            if (mode != ListInfoMode.IN_DESC) {
+                val days = DURATION - daysSincePlayerVisible
+                info.addPara("%s " + getDaysString(days) + " left to develop", initPad, tc, h, getDays(days))
+                initPad = 0f
+            }
+        }
+
+
+        //info.addPara("Personality: %s", initPad, tc, h, pName);
+        unindent(info)
     }
 
 }
