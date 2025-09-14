@@ -3,6 +3,7 @@ package privateering.misc
 import com.fs.starfarer.api.Global
 import lunalib.lunaSettings.LunaSettings
 import lunalib.lunaSettings.LunaSettingsListener
+import privateering.CommissionData
 
 object PrivSettings : LunaSettingsListener {
 
@@ -12,6 +13,7 @@ object PrivSettings : LunaSettingsListener {
     var baseCommIncomePerLevel = LunaSettings.getInt(MOD_ID, "priv_commissionPerLevel")
     var baseBountyPay = LunaSettings.getInt(MOD_ID, "priv_commissionBountyBase")
     var baseBondsPay = LunaSettings.getInt(MOD_ID, "priv_bondsBountyBase")
+    var bondsMax = LunaSettings.getInt(MOD_ID, "priv_bondsMax")?.toFloat()
     var baseMaintenanceCovered = LunaSettings.getFloat(MOD_ID, "priv_maintenanceCovered")
     var favorabilityMult = LunaSettings.getFloat(MOD_ID, "priv_favorMult")
 
@@ -25,6 +27,8 @@ object PrivSettings : LunaSettingsListener {
             baseCommIncomePerLevel = LunaSettings.getInt(MOD_ID, "priv_commissionPerLevel")
             baseBountyPay = LunaSettings.getInt(MOD_ID, "priv_commissionBountyBase")
             baseBondsPay = LunaSettings.getInt(MOD_ID, "priv_bondsBountyBase")
+            bondsMax = LunaSettings.getInt(MOD_ID, "priv_bondsMax")?.toFloat()
+            CommissionData.maxBonds = bondsMax!!
             baseMaintenanceCovered = LunaSettings.getFloat(MOD_ID, "priv_maintenanceCovered")
             favorabilityMult = LunaSettings.getFloat(MOD_ID, "priv_favorMult")
             updateDefaults()

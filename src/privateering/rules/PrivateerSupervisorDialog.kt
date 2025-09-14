@@ -14,6 +14,7 @@ import com.fs.starfarer.api.impl.campaign.ids.*
 import com.fs.starfarer.api.impl.campaign.rulecmd.AddRemoveCommodity
 import com.fs.starfarer.api.impl.campaign.rulecmd.BaseCommandPlugin
 import com.fs.starfarer.api.impl.campaign.rulecmd.FireAll
+import com.fs.starfarer.api.impl.campaign.submarkets.StoragePlugin
 import com.fs.starfarer.api.loading.HullModSpecAPI
 import com.fs.starfarer.api.ui.ButtonAPI
 import com.fs.starfarer.api.ui.CustomPanelAPI
@@ -28,6 +29,7 @@ import lunalib.lunaExtensions.addLunaElement
 import org.lazywizard.lazylib.MathUtils
 import org.lwjgl.input.Keyboard
 import org.magiclib.kotlin.getMercs
+import org.magiclib.kotlin.getStorage
 import org.magiclib.kotlin.setFullySurveyed
 import privateering.CommissionData
 import privateering.PrivateeringUtils
@@ -398,6 +400,10 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
             false,
             false)
 
+        var storage = market.getStorage()
+        if (storage is StoragePlugin) {
+            storage.setPlayerPaidToUnlock(true)
+        }
 
         //Global.getSector().economy.addMarket(market, false)
         station.setMarket(market);

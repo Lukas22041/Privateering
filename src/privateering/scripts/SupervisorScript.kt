@@ -48,10 +48,11 @@ class SupervisorScript : EveryFrameScript {
                 if (market!!.factionId != supervisor!!.faction.id) {
                     var markets = Misc.getFactionMarkets(faction)
                     markets = markets.filterNotNull()
-                    markets = markets.sortedWith(compareByDescending<MarketAPI?>( { it!!.isMilitary() } ).thenByDescending { it!!.size } )
+                    markets = markets.sortedWith(compareBy<MarketAPI?>({ it!!.isHidden }).thenByDescending { it!!.isMilitary() }.thenByDescending { it!!.size } )
 
                     if (markets.isNotEmpty()) {
                         var pick = markets.first()
+                        market!!.commDirectory.removePerson(supervisor)
 
                         market = pick
                         supervisors.set(faction, Pair(supervisor!!, market!!))
@@ -100,7 +101,7 @@ class SupervisorScript : EveryFrameScript {
             markets = markets.filterNotNull()
 
 
-            markets = markets.sortedWith(compareByDescending<MarketAPI?>( { it!!.isMilitary() } ).thenByDescending { it!!.size } )
+            markets = markets.sortedWith(compareBy<MarketAPI?>({ it!!.isHidden }).thenByDescending { it!!.isMilitary() }.thenByDescending { it!!.size } )
 
             //Random Independent market if faction has no markets
             if (markets.isEmpty()) {

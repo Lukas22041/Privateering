@@ -1,3 +1,14 @@
+Version 1.0.4
+Save Compatible 
+
+- You can now relocate your supervisor to another colony at a cost of 250 bonds.
+- Constructed stations storage should now be unlocked by default.
+- Added an option to set the maximum of requisition bonds that can be held at a time.
+- Pather commissions should no longer have supervisors end up on pather bases, unless no normal colony is available.
+- Fixed an issue where the constructed station was not locked to size 4.
+
+
+
 Version 1.0.3
 Save Compatible 
 

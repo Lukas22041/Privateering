@@ -15,8 +15,13 @@ class CommissionStationCondition : BaseMarketConditionPlugin() {
         market.accessibilityMod.modifyFlat(id, 0.20f, condition.name)
         market.stability.modifyFlat(id, 1f, condition.name)
 
-        val maxSize = Misc.getMaxMarketSize(market)
-        val mod = MAX_MARKET_SIZE - maxSize
+        /*val maxSize = Misc.getMaxMarketSize(market)
+        val mod = MAX_MARKET_SIZE - maxSize*/
+
+        //var mod = -2
+        var mod = -(Misc.MAX_COLONY_SIZE-4)
+        mod = Math.min(-2, mod)
+
         market.stats.dynamic.getMod(Stats.MAX_MARKET_SIZE).modifyFlat(id, mod.toFloat(), name)
     }
 

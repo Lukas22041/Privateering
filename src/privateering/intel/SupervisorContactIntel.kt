@@ -1,17 +1,22 @@
 package privateering.intel
 
 import com.fs.starfarer.api.Global
+import com.fs.starfarer.api.campaign.*
 import com.fs.starfarer.api.campaign.comm.IntelInfoPlugin.ListInfoMode
 import com.fs.starfarer.api.campaign.econ.MarketAPI
+import com.fs.starfarer.api.campaign.rules.MemoryAPI
 import com.fs.starfarer.api.characters.PersonAPI
+import com.fs.starfarer.api.combat.EngagementResultAPI
 import com.fs.starfarer.api.impl.campaign.ids.Conditions
+import com.fs.starfarer.api.impl.campaign.ids.Sounds
 import com.fs.starfarer.api.impl.campaign.intel.contacts.ContactIntel
 import com.fs.starfarer.api.impl.campaign.missions.hub.BaseMissionHub
-import com.fs.starfarer.api.ui.SectorMapAPI
-import com.fs.starfarer.api.ui.TooltipMakerAPI
+import com.fs.starfarer.api.ui.*
 import com.fs.starfarer.api.util.Misc
+import org.lazywizard.lazylib.MathUtils
 import privateering.CommissionData
 import privateering.PrivateeringUtils
+import privateering.scripts.addTooltip
 import privateering.ui.element.RequisitionBar
 import java.util.*
 
@@ -156,7 +161,17 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
 
         addBulletPoints(info, ListInfoMode.IN_DESC)
 
-        info.addSpacer(70f)
+        if (state == ContactState.PRIORITY || state == ContactState.NON_PRIORITY || state == ContactState.SUSPENDED) {
+            val ts = BaseMissionHub.getLastOpenedTimestamp(person)
+            if (ts <= Long.MIN_VALUE) {
+                //info.addPara("Never visited.", opad);
+                info.addSpacer(30f)
+            } else {
+                info.addPara("Last visited: %s.", opad, h, Misc.getDetailedAgoString(ts))
+            }
+        }
+
+        info.addSpacer(40f)
 
         var data = PrivateeringUtils.getCommissionData(faction)
         var reqBar = RequisitionBar(faction.color, data.bonds/ CommissionData.maxBonds/*-0.1f*/, data.bonds/ CommissionData.maxBonds, info, 180f, 30f)
@@ -164,86 +179,31 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
         reqBar.position.setXAlignOffset(width/2-reqBar.width/2)
         info.addSpacer(-5f).position.setXAlignOffset(-(width/2-reqBar.width/2))
 
-        if (state == ContactState.PRIORITY || state == ContactState.NON_PRIORITY || state == ContactState.SUSPENDED) {
-            val ts = BaseMissionHub.getLastOpenedTimestamp(person)
-            if (ts <= Long.MIN_VALUE) {
-                //info.addPara("Never visited.", opad);
-            } else {
-                info.addPara("Last visited: %s.", opad, h, Misc.getDetailedAgoString(ts))
-            }
-
-
-//			Color color = faction.getBaseUIColor();
-//			Color dark = faction.getDarkUIColor();
-//			info.addSectionHeading("Personality traits", color, dark, Alignment.MID, opad);
-//			info.addPara("Suspicous          Ambitious", opad, h, "Suspicous", "Ambitious");
-//			info.addPara("Ambitious: will offer missions that further their advancement more frequently. Refusing " +
-//					"these missions will damage the relationship.", opad, h, "Ambitious:");
-//			info.addPara("Suspicous: reduced reputation gains.", opad, h, "Suspicous:");
+        var relocateButton = info.addButton("Relocate (-250 bonds)", "SUP_RELOCATE", faction.baseUIColor, faction.darkUIColor, Alignment.MID, CutStyle.BOTTOM, reqBar.width, 20f, 0f)
+        relocateButton.position.belowLeft(reqBar.elementPanel, 5f)
+        if (PrivateeringUtils.getCommissionData(faction).bonds < 250) {
+            relocateButton.isEnabled = false
         }
 
-/*
-        val color = Misc.getStoryOptionColor()
-        val dark = Misc.getStoryDarkColor()
-
-        val noDeleteTooltip: TooltipCreator = object : TooltipCreator {
-            override fun isTooltipExpandable(tooltipParam: Any): Boolean {
-                return false
-            }
-
-            override fun getTooltipWidth(tooltipParam: Any): Float {
-                return TOOLTIP_WIDTH
-            }
-
-            override fun createTooltip(tooltip: TooltipMakerAPI, expanded: Boolean, tooltipParam: Any) {
-                tooltip.addPara("Can not delete or suspend contact at this time.", 0f)
-            }
-        }*/
-
-        /*if (state == ContactState.POTENTIAL || state == ContactState.SUSPENDED) {
-            if (state == ContactState.POTENTIAL && POTENTIAL_EXPIRES) {
-                val days = DURATION - daysSincePlayerVisible
-                info.addPara("The opportunity to develop this contact will be available for %s more " + getDaysString(
-                    days) + ".", opad, tc, h, getDays(days))
-            }
-
-
-            val max = getMaxContacts()
-            val curr = getCurrentContacts()
-
-            info.addPara("Active contacts: %s %s %s", opad, h, "" + curr, "/", "" + max)
-
-            var develop: ButtonAPI? = null
-            var developText = "Develop contact"
-            if (state == ContactState.SUSPENDED) developText = "Resume contact"
-            if (curr >= max) {
-//				info.addPara("Developing contacts above the maximum will " +
-//							 "require a story point per additional contact.", opad,
-//							 Misc.getStoryOptionColor(), "story point");
-                develop = addGenericButton(info, width, color, dark, developText, BUTTON_DEVELOP)
-                addDevelopTooltip(info)
-            } else {
-                develop = addGenericButton(info, width, developText, BUTTON_DEVELOP)
-            }
-            develop.setShortcut(Keyboard.KEY_T, true)
-        } else if (state == ContactState.NON_PRIORITY || state == ContactState.PRIORITY) {
-            val suspend = addGenericButton(info, width, color, dark, "Suspend contact", BUTTON_SUSPEND)
-            suspend.setShortcut(Keyboard.KEY_U, true)
-            if (Global.getSector().intel.isInShowMap) {
-                suspend.isEnabled = false
-                info.addTooltipToPrevious(noDeleteTooltip, TooltipLocation.LEFT)
-            }
-        }*/
-
-        /*info.addSpacer(-10f)
-        val delete = addGenericButton(info, width, "Delete contact", BUTTON_DELETE)
-        if (Global.getSector().intel.isInShowMap) {
-            delete.isEnabled = false
-            info.addTooltipToPrevious(noDeleteTooltip, TooltipLocation.LEFT)
+        info.addTooltip(relocateButton, TooltipMakerAPI.TooltipLocation.BELOW, 250f) {
+            it.addPara("Relocate your supervisor to another market. Can only select markets from the same faction. ", 0f, Misc.getTextColor(), Misc.getHighlightColor())
         }
-        delete.setShortcut(Keyboard.KEY_G, true)*/
 
 
+    }
+
+
+
+    override fun buttonPressConfirmed(buttonId: Any?, ui: IntelUIAPI?) {
+        super.buttonPressConfirmed(buttonId, ui)
+
+        if (buttonId == "SUP_RELOCATE") {
+
+            ui?.showDialog(Global.getSector().playerFleet, MoveSupervisorDialog(this, ui))
+
+            /*ui?.updateIntelList()
+            ui?.recreateIntelUI()*/
+        }
     }
 
     override fun addBulletPoints(info: TooltipMakerAPI, mode: ListInfoMode) {
@@ -319,6 +279,78 @@ class SupervisorContactIntel(person: PersonAPI, market: MarketAPI) : ContactInte
 
         //info.addPara("Personality: %s", initPad, tc, h, pName);
         unindent(info)
+    }
+
+    class MoveSupervisorDialog(var intel: SupervisorContactIntel, var ui: IntelUIAPI) : InteractionDialogPlugin {
+        override fun init(dialog: InteractionDialogAPI) {
+            dialog?.promptText = ""
+
+            var markets = Misc.getFactionMarkets(intel.marketFaction)
+            markets = markets.filterNotNull()
+            markets = markets.filter { !it.isHidden }
+            markets = markets.filter { it != intel.market }
+            var marketEntities = markets.map { it.primaryEntity }.filterNotNull()
+
+            dialog.showCampaignEntityPicker("Select a new market", "Relocate to", "Confirm", intel.marketFaction, marketEntities, object : BaseCampaignEntityPickerListener() {
+                override fun pickedEntity(entity: SectorEntityToken?) {
+
+                    if (entity != null) {
+                        var data = PrivateeringUtils.getCommissionData()
+                        data.bonds = MathUtils.clamp(data.bonds-250f,0f, CommissionData.maxBonds)
+                        Global.getSoundPlayer().playUISound(Sounds.STORY_POINT_SPEND, 1f, 1f)
+
+                        var market = entity.market
+
+                        var script = PrivateeringUtils.getSupervisorScript()
+                        script?.market?.commDirectory?.removePerson(intel.person)
+
+                        script?.market = market
+                        script?.supervisors!!.put(intel.marketFaction, Pair(intel.person, market))
+                        ContactIntel.getContactIntel(intel.person).relocateToMarket(market, true)
+                    }
+
+                    ui.recreateIntelUI()
+                    dialog.dismiss()
+                }
+
+                override fun cancelledEntityPicking() {
+                    dialog.dismiss()
+                }
+
+                override fun canConfirmSelection(entity: SectorEntityToken?): Boolean {
+                    return entity != null
+                }
+
+                override fun getMenuItemNameOverrideFor(entity: SectorEntityToken?): String {
+                    return entity!!.market.name
+                }
+            })
+        }
+
+        override fun optionSelected(optionText: String?, optionData: Any?) {
+
+        }
+
+        override fun optionMousedOver(optionText: String?, optionData: Any?) {
+
+        }
+
+        override fun advance(amount: Float) {
+
+        }
+
+        override fun backFromEngagement(battleResult: EngagementResultAPI?) {
+
+        }
+
+        override fun getContext(): Any? {
+            return null
+        }
+
+        override fun getMemoryMap(): MutableMap<String, MemoryAPI> {
+            return hashMapOf()
+        }
+
     }
 
 }

@@ -12,7 +12,7 @@ class CommissionData(var faction: FactionAPI) {
 
     companion object {
         var minBonds = 0f
-        var maxBonds = 1500f
+        var maxBonds = PrivSettings.bondsMax!! //Default 1500
         var bondValue = 500f //1 bond = x credits
         //var bondsPerFrigate = 600f
         var bondsImportantMult = 1.25f
