@@ -114,6 +114,7 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         var faction = Misc.getCommissionFaction()
         var data = PrivateeringUtils.getCommissionData(faction)
         var bonds = data.bonds
+        val hasStorage = Misc.getStorage(dialog.interactionTarget.market) is StoragePlugin
 
         dialog.optionPanel.addOption("Request faction nanoforge production (25% off)", "NANOFORGE_FACTION")
         dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "Use your requisition bonds to order custom production. Only ${faction.displayName} blueprints are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
@@ -124,6 +125,13 @@ class SupervisorDialogDelegate(var original: InteractionDialogPlugin, var person
         dialog.optionPanel.setTooltip("NANOFORGE_ALL", "Use your requisition bonds to order custom production. Only blueprints that you know are available. Capital ships and large weapons are only available after the \"Arsenal Authorization\" stage of the favorability event has been reached.")
         dialog.optionPanel.setTooltipHighlights("NANOFORGE_ALL", "Capital ships", "large weapons", "Arsenal Authorization")
         dialog.optionPanel.setTooltipHighlightColors("NANOFORGE_ALL", Misc.getHighlightColor(), Misc.getHighlightColor(), Misc.getHighlightColor())
+
+        if (!hasStorage) {
+            dialog.optionPanel.setEnabled("NANOFORGE_FACTION", false)
+            dialog.optionPanel.setTooltip("NANOFORGE_FACTION", "${dialog.interactionTarget.market.name} has no storage that could be delivered to.")
+            dialog.optionPanel.setEnabled("NANOFORGE_ALL", false)
+            dialog.optionPanel.setTooltip("NANOFORGE_ALL", "${dialog.interactionTarget.market.name} has no storage that could be delivered to.")
+        }
 
         dialog.optionPanel.addOption("Request ship repairs (D-Mod Removal)", "DMOD_REMOVAL")
 

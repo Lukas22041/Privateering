@@ -122,7 +122,7 @@ class CustomProductionIntel(var supervisor: PersonAPI, var data: ProductionData,
 
 
     fun deliver() {
-        val plugin = Misc.getStorage(market) as StoragePlugin ?: return
+        val plugin = Misc.getStorage(market) as? StoragePlugin? ?: return
         plugin.setPlayerPaidToUnlock(true)
 
         val cargo = plugin.cargo
